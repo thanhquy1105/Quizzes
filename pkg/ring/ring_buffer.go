@@ -100,64 +100,7 @@ func (rb *Buffer) Peek(n int) (head []byte, tail []byte) {
 	return
 }
 
-func (rb *Buffer) PeekFromPos(start, n int) (head []byte, tail []byte) {
-
-	if start < 0 || start >= rb.size {
-		return nil, nil
-	}
-
-	if rb.isEmpty {
-		return nil, nil
-	}
-
-	if n <= 0 {
-		return rb.peekAll()
-	}
-
-	var m int
-	if start < rb.r {
-
-		m = rb.size - start + rb.w
-	} else {
-
-		m = rb.w - start
-	}
-
-	if m > n {
-		m = n
-	}
-
-	if start+m <= rb.size {
-		head = rb.buf[start : start+m]
-	} else {
-		c1 := rb.size - start
-		head = rb.buf[start:]
-		c2 := m - c1
-		tail = rb.buf[:c2]
-	}
-
-	return
-}
-
 func (rb *Buffer) peekAll() (head []byte, tail []byte) {
-	if rb.isEmpty {
-		return
-	}
-
-	if rb.w > rb.r {
-		head = rb.buf[rb.r:rb.w]
-		return
-	}
-
-	head = rb.buf[rb.r:]
-	if rb.w != 0 {
-		tail = rb.buf[:rb.w]
-	}
-
-	return
-}
-
-func (rb *Buffer) peekAllFrom(start int) (head []byte, tail []byte) {
 	if rb.isEmpty {
 		return
 	}
