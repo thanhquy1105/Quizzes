@@ -1,0 +1,11 @@
+{"level":"info","time":"2026-03-26T13:31:27.559066+07:00","msg":"【conn[tcp://127.0.0.1:10000]】conn success"}
+{"level":"info","time":"2026-03-26T13:31:27.660024+07:00","msg":"【conn[tcp://127.0.0.1:10000]】auth success"}
+{"level":"info","time":"2026-03-26T13:31:27.760206+07:00","msg":"【Client[tcp://127.0.0.1:10000]】client stop..."}
+{"level":"info","time":"2026-03-26T13:31:27.760304+07:00","msg":"【conn[tcp://127.0.0.1:10000]】client close","id":"uid","addr":"tcp://127.0.0.1:10000"}
+{"level":"info","time":"2026-03-26T13:31:27.760398+07:00","msg":"【Client[tcp://127.0.0.1:10000]】gnet shutdown"}
+{"level":"info","time":"2026-03-26T13:31:28.262406+07:00","msg":"【conn[tcp://:10001]】conn success"}
+{"level":"info","time":"2026-03-26T13:31:28.362373+07:00","msg":"【conn[tcp://:10001]】auth success"}
+{"level":"info","time":"2026-03-26T13:31:28.394568+07:00","msg":"【conn[tcp://:10001]】client close","id":"uid","addr":"tcp://:10001","error":"read: EOF"}
+{"level":"info","time":"2026-03-26T13:31:28.965969+07:00","msg":"【conn[tcp://:10001]】conn success"}
+{"level":"info","time":"2026-03-26T13:31:29.066508+07:00","msg":"【conn[tcp://:10001]】auth success"}
+{"level":"info","time":"2026-03-26T13:31:29.383206+07:00","msg":"【conn[tcp://:10001]】client close","id":"uid","addr":"tcp://:10001","error":"read: EOF"}

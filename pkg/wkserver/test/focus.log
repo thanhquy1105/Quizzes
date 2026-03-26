@@ -1,0 +1,10 @@
+{"level":"info","time":"2026-03-26T13:31:27.869755+07:00","msg":"【conn[tcp://:10001]】conn success"}
+{"level":"info","time":"2026-03-26T13:31:27.9699+07:00","msg":"【conn[tcp://:10001]】auth success"}
+{"level":"info","time":"2026-03-26T13:31:28.394361+07:00","msg":"【Client[tcp://:10001]】client stop..."}
+{"level":"info","time":"2026-03-26T13:31:28.394422+07:00","msg":"【conn[tcp://:10001]】client close","id":"uid","addr":"tcp://:10001"}
+{"level":"info","time":"2026-03-26T13:31:28.394474+07:00","msg":"【Client[tcp://:10001]】gnet shutdown"}
+{"level":"info","time":"2026-03-26T13:31:29.097558+07:00","msg":"【conn[tcp://127.0.0.1:10001]】conn success"}
+{"level":"info","time":"2026-03-26T13:31:29.198518+07:00","msg":"【conn[tcp://127.0.0.1:10001]】auth success"}
+{"level":"info","time":"2026-03-26T13:31:29.382975+07:00","msg":"【Client[tcp://127.0.0.1:10001]】client stop..."}
+{"level":"info","time":"2026-03-26T13:31:29.383051+07:00","msg":"【conn[tcp://127.0.0.1:10001]】client close","id":"uid","addr":"tcp://127.0.0.1:10001"}
+{"level":"info","time":"2026-03-26T13:31:29.383098+07:00","msg":"【Client[tcp://127.0.0.1:10001]】gnet shutdown"}

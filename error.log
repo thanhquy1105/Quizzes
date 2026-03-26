@@ -1,0 +1,29 @@
+{"level":"error","time":"2026-03-26T13:42:46.268704+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"GET / ","expect":"WUKONG","totalLen":517}
+{"level":"error","time":"2026-03-26T13:42:55.072909+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"GET / ","expect":"WUKONG","totalLen":517}
+{"level":"error","time":"2026-03-26T13:43:00.667924+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"GET / ","expect":"WUKONG","totalLen":517}
+{"level":"error","time":"2026-03-26T13:43:19.486896+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"","expect":"WUKONG","totalLen":1048576}
+{"level":"error","time":"2026-03-26T13:43:19.487025+07:00","msg":"【Server】ws decode error","error":"invalid magic number start"}
+{"level":"error","time":"2026-03-26T13:43:32.187055+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"","expect":"WUKONG","totalLen":1048576}
+{"level":"error","time":"2026-03-26T13:43:32.187223+07:00","msg":"【Server】ws decode error","error":"invalid magic number start"}
+{"level":"error","time":"2026-03-26T13:43:37.834462+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"","expect":"WUKONG","totalLen":1048576}
+{"level":"error","time":"2026-03-26T13:43:37.834589+07:00","msg":"【Server】ws decode error","error":"invalid magic number start"}
+{"level":"error","time":"2026-03-26T13:43:54.584221+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"","expect":"WUKONG","totalLen":1048576}
+{"level":"error","time":"2026-03-26T13:43:54.584291+07:00","msg":"【Server】ws decode error","error":"invalid magic number start"}
+{"level":"error","time":"2026-03-26T13:49:47.168316+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"","expect":"WUKONG","totalLen":1048576}
+{"level":"error","time":"2026-03-26T13:49:47.169674+07:00","msg":"【Server】ws decode error","error":"invalid magic number start"}
+{"level":"error","time":"2026-03-26T13:50:34.375639+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"","expect":"WUKONG","totalLen":1048576}
+{"level":"error","time":"2026-03-26T13:50:34.37735+07:00","msg":"【Server】ws decode error","error":"invalid magic number start"}
+{"level":"error","time":"2026-03-26T13:50:43.063974+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"GET / ","expect":"WUKONG","totalLen":668}
+{"level":"error","time":"2026-03-26T13:50:44.184376+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"GET / ","expect":"WUKONG","totalLen":694}
+{"level":"error","time":"2026-03-26T13:50:44.185198+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"GET / ","expect":"WUKONG","totalLen":694}
+{"level":"error","time":"2026-03-26T13:50:44.18616+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"GET / ","expect":"WUKONG","totalLen":694}
+{"level":"error","time":"2026-03-26T13:50:49.209404+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"GET / ","expect":"WUKONG","totalLen":694}
+{"level":"error","time":"2026-03-26T13:51:56.7303+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"","expect":"WUKONG","totalLen":1048576}
+{"level":"error","time":"2026-03-26T13:51:56.731209+07:00","msg":"【Server】ws decode error","error":"invalid magic number start"}
+{"level":"error","time":"2026-03-26T13:53:11.947102+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"","expect":"WUKONG","totalLen":1048576}
+{"level":"error","time":"2026-03-26T13:53:11.948558+07:00","msg":"【Server】ws decode error","error":"invalid magic number start"}
+{"level":"error","time":"2026-03-26T14:21:26.482117+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"GET / ","expect":"WUKONG","totalLen":683}
+{"level":"error","time":"2026-03-26T14:21:26.483264+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"GET / ","expect":"WUKONG","totalLen":683}
+{"level":"error","time":"2026-03-26T14:21:27.55893+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"GET / ","expect":"WUKONG","totalLen":726}
+{"level":"error","time":"2026-03-26T14:21:27.559231+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"GET / ","expect":"WUKONG","totalLen":726}
+{"level":"error","time":"2026-03-26T14:21:27.559741+07:00","msg":"【wkserver.proto】decode: invalid magic number start","act":"GET / ","expect":"WUKONG","totalLen":726}

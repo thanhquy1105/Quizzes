@@ -1,0 +1,118 @@
+{"level":"debug","time":"2026-03-26T15:07:26.182742+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":94}
+{"level":"debug","time":"2026-03-26T15:07:26.183884+07:00","msg":"【Server】Handling request","path":"/join","id":677875}
+{"level":"debug","time":"2026-03-26T15:07:26.183967+07:00","msg":"【Server】handleJoin started","body":"{\"quiz_id\":\"BTASKEE-QUIZ-2024\",\"uid\":\"user-825\",\"name\":\"DebugUserTesterV3\"}"}
+{"level":"debug","time":"2026-03-26T15:07:26.184196+07:00","msg":"【Server】handleJoin: session joined, writing OK","uid":"user-825"}
+{"level":"debug","time":"2026-03-26T15:07:26.184333+07:00","msg":"【Server】handleJoin: broadcasting leaderboard"}
+{"level":"debug","time":"2026-03-26T15:07:26.184519+07:00","msg":"【Server】handleJoin finished"}
+{"level":"debug","time":"2026-03-26T15:07:26.184564+07:00","msg":"【Server】request path","id":677875,"path":"/join","cost":0}
+{"level":"debug","time":"2026-03-26T15:07:42.259426+07:00","msg":"【ReactorSub-4】conn 连接关闭！","id":1,"fd":24}
+{"level":"debug","time":"2026-03-26T15:07:42.259595+07:00","msg":"【ReactorSub-4】close connn","error":"connection reset by peer","id":1,"fd":24}
+{"level":"debug","time":"2026-03-26T15:07:42.28517+07:00","msg":"【Conn[[reactor-4]1]】release connection"}
+{"level":"debug","time":"2026-03-26T15:07:55.619681+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":85}
+{"level":"debug","time":"2026-03-26T15:07:55.619927+07:00","msg":"【Server】Handling request","path":"/join","id":813774}
+{"level":"debug","time":"2026-03-26T15:07:55.62003+07:00","msg":"【Server】handleJoin started","body":"{\"quiz_id\":\"BTASKEE-QUIZ-2024\",\"uid\":\"user-230\",\"name\":\"TesterV3\"}"}
+{"level":"debug","time":"2026-03-26T15:07:55.620153+07:00","msg":"【Server】handleJoin: session joined, writing OK","uid":"user-230"}
+{"level":"debug","time":"2026-03-26T15:07:55.620284+07:00","msg":"【Server】handleJoin: broadcasting leaderboard"}
+{"level":"debug","time":"2026-03-26T15:07:55.620639+07:00","msg":"【Server】handleJoin finished"}
+{"level":"debug","time":"2026-03-26T15:07:55.620739+07:00","msg":"【Server】request path","id":813774,"path":"/join","cost":0}
+{"level":"debug","time":"2026-03-26T15:10:44.06212+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":95}
+{"level":"debug","time":"2026-03-26T15:10:44.063284+07:00","msg":"【Server】Handling request","path":"/join","id":118915}
+{"level":"debug","time":"2026-03-26T15:10:44.063365+07:00","msg":"【Server】handleJoin started","body":"{\"quiz_id\":\"BTASKEE-QUIZ-2024\",\"uid\":\"user-230\",\"name\":\"TesterV3QuizWinner\"}"}
+{"level":"debug","time":"2026-03-26T15:10:44.06368+07:00","msg":"【Server】handleJoin: session joined, writing OK","uid":"user-230"}
+{"level":"debug","time":"2026-03-26T15:10:44.064027+07:00","msg":"【Server】handleJoin: broadcasting leaderboard"}
+{"level":"debug","time":"2026-03-26T15:10:44.064282+07:00","msg":"【Server】handleJoin finished"}
+{"level":"debug","time":"2026-03-26T15:10:44.064302+07:00","msg":"【Server】request path","id":118915,"path":"/join","cost":0}
+{"level":"debug","time":"2026-03-26T15:10:50.65612+07:00","msg":"【ReactorSub-4】close connn","error":"ws closed: 1001 ","id":1,"fd":24}
+{"level":"debug","time":"2026-03-26T15:10:50.65778+07:00","msg":"【Conn[[reactor-4]1]】release connection"}
+{"level":"debug","time":"2026-03-26T15:10:58.808219+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:10:58.809764+07:00","msg":"【Server】Handling request","path":"/join","id":62708}
+{"level":"debug","time":"2026-03-26T15:10:58.809875+07:00","msg":"【Server】handleJoin started","body":"{\"quiz_id\":\"BTASKEE-QUIZ-2024\",\"uid\":\"user-608\",\"name\":\"QuizWinner\"}"}
+{"level":"debug","time":"2026-03-26T15:10:58.810053+07:00","msg":"【Server】handleJoin: session joined, writing OK","uid":"user-608"}
+{"level":"debug","time":"2026-03-26T15:10:58.810656+07:00","msg":"【Server】handleJoin: broadcasting leaderboard"}
+{"level":"debug","time":"2026-03-26T15:10:58.811161+07:00","msg":"【Server】handleJoin finished"}
+{"level":"debug","time":"2026-03-26T15:10:58.811201+07:00","msg":"【Server】request path","id":62708,"path":"/join","cost":1}
+{"level":"debug","time":"2026-03-26T15:11:32.559181+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:11:32.559656+07:00","msg":"【Server】Handling request","path":"/answer","id":184655}
+{"level":"debug","time":"2026-03-26T15:11:32.560182+07:00","msg":"【Server】request path","id":184655,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:11:34.174656+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:11:34.174793+07:00","msg":"【Server】Handling request","path":"/answer","id":489036}
+{"level":"debug","time":"2026-03-26T15:11:34.175186+07:00","msg":"【Server】request path","id":489036,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:11:35.815318+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:11:35.815504+07:00","msg":"【Server】Handling request","path":"/answer","id":805359}
+{"level":"debug","time":"2026-03-26T15:11:35.815869+07:00","msg":"【Server】request path","id":805359,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:12:24.488508+07:00","msg":"【ReactorSub-4】conn 连接关闭！","id":2,"fd":24}
+{"level":"debug","time":"2026-03-26T15:12:24.491319+07:00","msg":"【ReactorSub-4】close connn","error":"connection reset by peer","id":2,"fd":24}
+{"level":"debug","time":"2026-03-26T15:12:24.49397+07:00","msg":"【Conn[[reactor-4]2]】release connection"}
+{"level":"debug","time":"2026-03-26T15:12:34.30706+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:12:34.307186+07:00","msg":"【Server】Handling request","path":"/join","id":452344}
+{"level":"debug","time":"2026-03-26T15:12:34.307265+07:00","msg":"【Server】handleJoin started","body":"{\"quiz_id\":\"BTASKEE-QUIZ-2024\",\"uid\":\"user-302\",\"name\":\"QuizWinner\"}"}
+{"level":"debug","time":"2026-03-26T15:12:34.30735+07:00","msg":"【Server】handleJoin: session joined, writing OK","uid":"user-302"}
+{"level":"debug","time":"2026-03-26T15:12:34.307441+07:00","msg":"【Server】handleJoin: broadcasting leaderboard"}
+{"level":"debug","time":"2026-03-26T15:12:34.307704+07:00","msg":"【Server】handleJoin finished"}
+{"level":"debug","time":"2026-03-26T15:12:34.307742+07:00","msg":"【Server】request path","id":452344,"path":"/join","cost":0}
+{"level":"debug","time":"2026-03-26T15:12:42.784242+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:12:42.784625+07:00","msg":"【Server】Handling request","path":"/answer","id":115145}
+{"level":"debug","time":"2026-03-26T15:12:42.785177+07:00","msg":"【Server】request path","id":115145,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:12:44.415027+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:12:44.415166+07:00","msg":"【Server】Handling request","path":"/answer","id":185732}
+{"level":"debug","time":"2026-03-26T15:12:44.415623+07:00","msg":"【Server】request path","id":185732,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:12:46.034995+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:12:46.035115+07:00","msg":"【Server】Handling request","path":"/answer","id":507087}
+{"level":"debug","time":"2026-03-26T15:12:46.035875+07:00","msg":"【Server】request path","id":507087,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:13:50.43544+07:00","msg":"【ReactorSub-4】close connn","error":"ws closed: 1005 ","id":3,"fd":24}
+{"level":"debug","time":"2026-03-26T15:13:50.495809+07:00","msg":"【Conn[[reactor-4]3]】release connection"}
+{"level":"debug","time":"2026-03-26T15:15:42.733537+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":89}
+{"level":"debug","time":"2026-03-26T15:15:42.734171+07:00","msg":"【Server】Handling request","path":"/join","id":208212}
+{"level":"debug","time":"2026-03-26T15:15:42.734243+07:00","msg":"【Server】handleJoin started","body":"{\"quiz_id\":\"BTASKEE-QUIZ-2024\",\"uid\":\"user-895\",\"name\":\"QuizMasterV3\"}"}
+{"level":"debug","time":"2026-03-26T15:15:42.734329+07:00","msg":"【Server】handleJoin: session joined, writing OK","uid":"user-895"}
+{"level":"debug","time":"2026-03-26T15:15:42.734448+07:00","msg":"【Server】handleJoin: broadcasting leaderboard"}
+{"level":"debug","time":"2026-03-26T15:15:42.737543+07:00","msg":"【Server】handleJoin finished"}
+{"level":"debug","time":"2026-03-26T15:15:42.737624+07:00","msg":"【Server】request path","id":208212,"path":"/join","cost":3}
+{"level":"debug","time":"2026-03-26T15:15:49.046906+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:15:49.047286+07:00","msg":"【Server】Handling request","path":"/answer","id":457370}
+{"level":"debug","time":"2026-03-26T15:15:49.0482+07:00","msg":"【Server】request path","id":457370,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:15:51.166328+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:15:51.166625+07:00","msg":"【Server】Handling request","path":"/answer","id":207127}
+{"level":"debug","time":"2026-03-26T15:15:51.167546+07:00","msg":"【Server】request path","id":207127,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:15:53.290898+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:15:53.291095+07:00","msg":"【Server】Handling request","path":"/answer","id":54525}
+{"level":"debug","time":"2026-03-26T15:15:53.291689+07:00","msg":"【Server】request path","id":54525,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:15:55.405796+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:15:55.405895+07:00","msg":"【Server】Handling request","path":"/answer","id":478012}
+{"level":"debug","time":"2026-03-26T15:15:55.406411+07:00","msg":"【Server】request path","id":478012,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:15:57.521126+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:15:57.521548+07:00","msg":"【Server】Handling request","path":"/answer","id":477721}
+{"level":"debug","time":"2026-03-26T15:15:57.522112+07:00","msg":"【Server】request path","id":477721,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:18:40.577435+07:00","msg":"【ReactorSub-4】close connn","error":"ws closed: 1001 ","id":4,"fd":24}
+{"level":"debug","time":"2026-03-26T15:18:40.579639+07:00","msg":"【Conn[[reactor-4]4]】release connection"}
+{"level":"debug","time":"2026-03-26T15:18:42.853524+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":78}
+{"level":"debug","time":"2026-03-26T15:18:42.853734+07:00","msg":"【Server】Handling request","path":"/join","id":798197}
+{"level":"debug","time":"2026-03-26T15:18:42.853819+07:00","msg":"【Server】handleJoin started","body":"{\"quiz_id\":\"BTASKEE-QUIZ-2024\",\"uid\":\"user-881\",\"name\":\"A\"}"}
+{"level":"debug","time":"2026-03-26T15:18:42.854001+07:00","msg":"【Server】handleJoin: session joined, writing OK","uid":"user-881"}
+{"level":"debug","time":"2026-03-26T15:18:42.854188+07:00","msg":"【Server】handleJoin: broadcasting leaderboard"}
+{"level":"debug","time":"2026-03-26T15:18:42.854631+07:00","msg":"【Server】handleJoin finished"}
+{"level":"debug","time":"2026-03-26T15:18:42.854688+07:00","msg":"【Server】request path","id":798197,"path":"/join","cost":0}
+{"level":"debug","time":"2026-03-26T15:18:45.04339+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:18:45.044394+07:00","msg":"【Server】Handling request","path":"/answer","id":228102}
+{"level":"debug","time":"2026-03-26T15:18:45.045365+07:00","msg":"【Server】request path","id":228102,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:18:46.112225+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:18:46.112756+07:00","msg":"【Server】Handling request","path":"/answer","id":196804}
+{"level":"debug","time":"2026-03-26T15:18:46.113722+07:00","msg":"【Server】request path","id":196804,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:18:48.394476+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:18:48.394599+07:00","msg":"【Server】Handling request","path":"/answer","id":758561}
+{"level":"debug","time":"2026-03-26T15:18:48.395208+07:00","msg":"【Server】request path","id":758561,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:18:49.435993+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":87}
+{"level":"debug","time":"2026-03-26T15:18:49.436111+07:00","msg":"【Server】Handling request","path":"/answer","id":726050}
+{"level":"debug","time":"2026-03-26T15:18:49.436842+07:00","msg":"【Server】request path","id":726050,"path":"/answer","cost":0}
+{"level":"debug","time":"2026-03-26T15:18:59.270616+07:00","msg":"【ReactorSub-4】conn 连接关闭！","id":5,"fd":24}
+{"level":"debug","time":"2026-03-26T15:18:59.27109+07:00","msg":"【ReactorSub-4】close connn","error":"connection reset by peer","id":5,"fd":24}
+{"level":"debug","time":"2026-03-26T15:18:59.271506+07:00","msg":"【Conn[[reactor-4]5]】release connection"}
+{"level":"debug","time":"2026-03-26T15:19:04.802679+07:00","msg":"【Server】Received message","type":"MsgTypeRequest","len":78}
+{"level":"debug","time":"2026-03-26T15:19:04.802841+07:00","msg":"【Server】Handling request","path":"/join","id":982694}
+{"level":"debug","time":"2026-03-26T15:19:04.802865+07:00","msg":"【Server】handleJoin started","body":"{\"quiz_id\":\"BTASKEE-QUIZ-2022\",\"uid\":\"user-130\",\"name\":\"A\"}"}
+{"level":"debug","time":"2026-03-26T15:19:04.802934+07:00","msg":"【Server】handleJoin: session joined, writing OK","uid":"user-130"}
+{"level":"debug","time":"2026-03-26T15:19:04.803039+07:00","msg":"【Server】handleJoin: broadcasting leaderboard"}
+{"level":"debug","time":"2026-03-26T15:19:04.803395+07:00","msg":"【Server】handleJoin finished"}
+{"level":"debug","time":"2026-03-26T15:19:04.803447+07:00","msg":"【Server】request path","id":982694,"path":"/join","cost":0}
+{"level":"debug","time":"2026-03-26T15:22:04.79245+07:00","msg":"【Conn[[reactor-4]6]】max idle time exceeded, close the connection","maxIdle":120000,"lastActivity":179990,"conn":"Conn[6] fd={24}"}
+{"level":"debug","time":"2026-03-26T15:22:04.79374+07:00","msg":"【Conn[[reactor-4]6]】release connection"}
