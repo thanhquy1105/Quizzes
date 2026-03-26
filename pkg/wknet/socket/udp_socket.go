@@ -1,18 +1,3 @@
-// Copyright (c) 2020 Andy Pan
-// Copyright (c) 2017 Max Riveiro
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 //go:build linux || freebsd || dragonfly || darwin
 // +build linux freebsd dragonfly darwin
 
@@ -28,7 +13,6 @@ import (
 	"btaskee-quiz/pkg/errors"
 )
 
-// GetUDPSockAddr the structured addresses based on the protocol and raw address.
 func GetUDPSockAddr(proto, addr string) (sa syscall.Sockaddr, family int, udpAddr *net.UDPAddr, ipv6only bool, err error) {
 	var udpVersion string
 
@@ -60,9 +44,6 @@ func GetUDPSockAddr(proto, addr string) (sa syscall.Sockaddr, family int, udpAdd
 }
 
 func determineUDPProto(proto string, addr *net.UDPAddr) (string, error) {
-	// If the protocol is set to "udp", we try to determine the actual protocol
-	// version from the size of the resolved IP address. Otherwise, we simple use
-	// the protocol given to us by the caller.
 
 	if addr.IP.To4() != nil {
 		return "udp4", nil
@@ -80,8 +61,6 @@ func determineUDPProto(proto string, addr *net.UDPAddr) (string, error) {
 	return "", errors.ErrUnsupportedUDPProtocol
 }
 
-// udpSocket creates an endpoint for communication and returns a file descriptor that refers to that endpoint.
-// Argument `reusePort` indicates whether the SO_REUSEPORT flag will be assigned.
 func udpSocket(proto, addr string, connect bool, sockOpts ...Option) (fd int, netAddr net.Addr, err error) {
 	var (
 		family   int
@@ -98,7 +77,7 @@ func udpSocket(proto, addr string, connect bool, sockOpts ...Option) (fd int, ne
 		return
 	}
 	defer func() {
-		// ignore EINPROGRESS for non-blocking socket connect, should be processed by caller
+
 		if err != nil {
 			if err, ok := err.(*os.SyscallError); ok && err.Err == syscall.EINPROGRESS {
 				return
@@ -113,7 +92,6 @@ func udpSocket(proto, addr string, connect bool, sockOpts ...Option) (fd int, ne
 		}
 	}
 
-	// Allow broadcast.
 	if err = os.NewSyscallError("setsockopt", syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_BROADCAST, 1)); err != nil {
 		return
 	}

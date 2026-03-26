@@ -5,7 +5,6 @@ import (
 	"os"
 )
 
-// CopyFile CopyFile
 func CopyFile(dstName, srcName string) (written int64, err error) {
 	src, err := os.Open(srcName)
 	if err != nil {

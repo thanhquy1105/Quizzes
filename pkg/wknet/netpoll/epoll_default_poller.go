@@ -1,7 +1,3 @@
-// Copyright 2023 tangtao. All rights reserved.
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file.
-
 //go:build linux && !poll_opt
 // +build linux,!poll_opt
 
@@ -51,7 +47,6 @@ func NewPoller(index int, name string) *Poller {
 	return poller
 }
 
-// Polling blocks the current goroutine, waiting for network-events.
 func (p *Poller) Polling(callback func(fd int, event PollEvent) error) error {
 	el := newEventList(InitPollEventsCap)
 	msec := -1
@@ -71,7 +66,6 @@ func (p *Poller) Polling(callback func(fd int, event PollEvent) error) error {
 		var triggerRead, triggerWrite, triggerHup, triggerError bool
 		var pollEvent PollEvent
 
-		// test := make([]byte, 10000)
 		for i := 0; i < n; i++ {
 			evt := el.events[i]
 			fd := evt.Fd
@@ -118,7 +112,6 @@ const (
 	errorEvents     = unix.EPOLLERR | unix.EPOLLHUP | unix.EPOLLRDHUP
 )
 
-// AddRead registers the given file-descriptor with readable event to the poller.
 func (p *Poller) AddRead(fd int) error {
 	return os.NewSyscallError("epoll_ctl add",
 		unix.EpollCtl(p.fd, unix.EPOLL_CTL_ADD, fd, &unix.EpollEvent{Fd: int32(fd), Events: readEvents}))
@@ -129,13 +122,11 @@ func (p *Poller) AddWrite(fd int) error {
 		unix.EpollCtl(p.fd, unix.EPOLL_CTL_MOD, fd, &unix.EpollEvent{Fd: int32(fd), Events: readWriteEvents}))
 }
 
-// DeleteRead deletes the given file-descriptor from the poller.
 func (p *Poller) DeleteRead(fd int) error {
 	return os.NewSyscallError("epoll_ctl delete",
 		unix.EpollCtl(p.fd, unix.EPOLL_CTL_MOD, fd, &unix.EpollEvent{Fd: int32(fd), Events: writeEvents}))
 }
 
-// DeleteWrite deletes the given file-descriptor from the poller.
 func (p *Poller) DeleteWrite(fd int) error {
 	return os.NewSyscallError("epoll_ctl delete",
 		unix.EpollCtl(p.fd, unix.EPOLL_CTL_MOD, fd, &unix.EpollEvent{Fd: int32(fd), Events: readEvents}))
@@ -151,7 +142,6 @@ func (p *Poller) Delete(fd int) error {
 	return err
 }
 
-// Close closes the poller.
 func (p *Poller) Close() error {
 	p.shutdown.Store(true)
 	return os.NewSyscallError("close", unix.Close(p.efd))

@@ -25,10 +25,10 @@ type acceptor struct {
 	listenWSPoller    *netpoll.Poller
 	listenWSSPoller   *netpoll.Poller
 	listen            *listener
-	listenWS          *listener // websocket
-	listenWSS         *listener // websocket
-	tcpRealListenAddr net.Addr  // tcp real listen addr
-	wsRealListenAddr  net.Addr  // websocket real listen addr
+	listenWS          *listener
+	listenWSS         *listener
+	tcpRealListenAddr net.Addr
+	wsRealListenAddr  net.Addr
 
 	wklog.Log
 }
@@ -99,7 +99,6 @@ func (a *acceptor) start() error {
 
 func (a *acceptor) Stop() error {
 
-	// -----------------listen-----------------
 	err := a.listenPoller.Close()
 	if err != nil {
 		a.Warn("listenPoller.Close() failed", zap.Error(err))
@@ -110,8 +109,6 @@ func (a *acceptor) Stop() error {
 			a.Warn("listen.Close() failed", zap.Error(err))
 		}
 	}
-
-	// -----------------ws-----------------
 
 	if a.listenWS != nil {
 		err = a.listenWS.Close()
@@ -124,7 +121,6 @@ func (a *acceptor) Stop() error {
 		a.Warn("listenWSPoller.Close() failed", zap.Error(err))
 	}
 
-	// -----------------wss-----------------
 	err = a.listenWSSPoller.Close()
 	if err != nil {
 		a.Warn("listenWSSPoller.Close() failed", zap.Error(err))
@@ -136,7 +132,6 @@ func (a *acceptor) Stop() error {
 		}
 	}
 
-	// -----------------reactor sub-----------------
 	for _, reactorSub := range a.reactorSubs {
 		err = reactorSub.Stop()
 		if err != nil {
@@ -148,7 +143,7 @@ func (a *acceptor) Stop() error {
 }
 
 func (a *acceptor) initTCPListener(wg *sync.WaitGroup) error {
-	// tcp
+
 	a.listen = newListener(a.eg.options.Addr, a.eg.options)
 	err := a.listen.init()
 	if err != nil {
@@ -168,7 +163,7 @@ func (a *acceptor) initTCPListener(wg *sync.WaitGroup) error {
 }
 
 func (a *acceptor) initWSListener(wg *sync.WaitGroup) error {
-	// tcp
+
 	a.listenWS = newListener(a.eg.options.WsAddr, a.eg.options)
 	err := a.listenWS.init()
 	if err != nil {
@@ -185,7 +180,7 @@ func (a *acceptor) initWSListener(wg *sync.WaitGroup) error {
 }
 
 func (a *acceptor) initWSSListener(wg *sync.WaitGroup) error {
-	// tcp
+
 	a.listenWSS = newListener(a.eg.options.WssAddr, a.eg.options)
 	err := a.listenWSS.init()
 	if err != nil {
@@ -238,12 +233,12 @@ func (a *acceptor) acceptConn(listenFd int, ws bool, wss bool) error {
 			return err
 		}
 	}
-	// add conn to sub reactor
+
 	err = subReactor.AddConn(conn)
 	if err != nil {
 		a.Warn("subReactor.AddConn() failed", zap.Error(err))
 	}
-	// call on connect
+
 	err = a.eg.eventHandler.OnConnect(conn)
 	if err != nil {
 		a.Warn("OnConnect() failed", zap.Error(err))

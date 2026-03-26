@@ -1,20 +1,19 @@
 package wknet
 
 type Buffer interface {
-	// IsEmpty returns true if the buffer is empty.
 	IsEmpty() bool
-	// Write writes the data to the buffer.
+
 	Write(data []byte) (int, error)
-	// Read reads the data from the buffer.
+
 	Read(data []byte) (int, error)
-	// BoundBufferSize returns the bound buffer size.
+
 	BoundBufferSize() int
-	// Peek returns the data from the buffer without removing it.
+
 	Peek(n int) (head []byte, tail []byte)
 	PeekBytes(p []byte) int
-	// Discard discards the data from the buffer.
+
 	Discard(n int) (int, error)
-	// Release releases the buffer.
+
 	Release() error
 }
 

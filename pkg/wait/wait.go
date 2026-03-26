@@ -11,11 +11,8 @@ const (
 )
 
 type Wait interface {
-	// Register waits returns a chan that waits on the given ID.
-	// The chan will be triggered when Trigger is called with
-	// the same ID.
 	Register(id string) <-chan interface{}
-	// Trigger triggers the waiting chans with the given ID.
+
 	Trigger(id string, x interface{})
 	IsRegistered(id string) bool
 }
@@ -29,7 +26,6 @@ type list struct {
 	e []listElement
 }
 
-// New creates a Wait.
 func New() Wait {
 	res := list{
 		e: make([]listElement, defaultListElementLength),

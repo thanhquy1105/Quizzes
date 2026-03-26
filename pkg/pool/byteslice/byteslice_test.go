@@ -12,7 +12,6 @@ func TestByteSlice(t *testing.T) {
 		t.Fatal("expect copy result is ff, but not")
 	}
 
-	// Disable GC to test re-acquire the same data
 	gc := debug.SetGCPercent(-1)
 
 	Put(buf)
@@ -25,7 +24,6 @@ func TestByteSlice(t *testing.T) {
 		t.Fatal("expect the newBuf is the buf, but not")
 	}
 
-	// Re-enable GC
 	debug.SetGCPercent(gc)
 }
 

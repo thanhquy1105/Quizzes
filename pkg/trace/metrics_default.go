@@ -38,31 +38,27 @@ func newMetrics(opts *Options) *metrics {
 	}
 }
 
-// System 系统监控
 func (d *metrics) System() ISystemMetrics {
 	return d.system
 }
 
-// App  应用监控
 func (d *metrics) App() IAppMetrics {
 	return d.app
 }
 
-// Cluster 分布式监控
 func (d *metrics) Cluster() IClusterMetrics {
 	return d.cluster
 }
 
-// DB 数据库监控
 func (d *metrics) DB() IDBMetrics {
 	return d.db
 }
 
 func (d *metrics) Route(r *wkhttp.WKHttp) {
 
-	r.GET("/metrics/app", d.appMetrics)         // 获取应用监控数据
-	r.GET("/metrics/cluster", d.clusterMetrics) // 获取集群监控数据
-	r.GET("/metrics/system", d.systemMetrics)   // 获取系统监控数据
+	r.GET("/metrics/app", d.appMetrics)
+	r.GET("/metrics/cluster", d.clusterMetrics)
+	r.GET("/metrics/system", d.systemMetrics)
 }
 
 func (d *metrics) appMetrics(c *wkhttp.Context) {
@@ -178,7 +174,6 @@ func (d *metrics) clusterMetrics(c *wkhttp.Context) {
 	d.requestAndFillClusterMetrics("cluster_msg_incoming_bytes_total", rg, true, &resps)
 	d.requestAndFillClusterMetrics("cluster_msg_outgoing_bytes_total", rg, true, &resps)
 
-	// channel message
 	d.requestAndFillClusterMetrics("cluster_channel_msg_incoming_count_total", rg, true, &resps)
 	d.requestAndFillClusterMetrics("cluster_channel_msg_outgoing_count_total", rg, true, &resps)
 	d.requestAndFillClusterMetrics("cluster_channel_msg_incoming_bytes_total", rg, true, &resps)
@@ -194,22 +189,18 @@ func (d *metrics) clusterMetrics(c *wkhttp.Context) {
 	d.requestAndFillClusterMetrics("cluster_msg_sync_incoming_count_total", rg, true, &resps)
 	d.requestAndFillClusterMetrics("cluster_msg_sync_outgoing_count_total", rg, true, &resps)
 
-	// channel msg sync
 	d.requestAndFillClusterMetrics("cluster_channel_msg_sync_incoming_count_total", rg, true, &resps)
 	d.requestAndFillClusterMetrics("cluster_channel_msg_sync_outgoing_count_total", rg, true, &resps)
 	d.requestAndFillClusterMetrics("cluster_channel_msg_sync_incoming_bytes_total", rg, true, &resps)
 	d.requestAndFillClusterMetrics("cluster_channel_msg_sync_outgoing_bytes_total", rg, true, &resps)
 
-	// channel active count
 	d.requestAndFillClusterMetrics("cluster_channel_active_count", rg, false, &resps)
 
-	// propose
 	d.requestAndFillClusterMetrics("cluster_channel_propose_count_total", rg, true, &resps)
 	d.requestAndFillClusterMetrics("cluster_channel_propose_failed_count_total", rg, true, &resps)
 	d.requestAndFillClusterMetrics("cluster_channel_propose_latency_over_500ms_total", rg, true, &resps)
 	d.requestAndFillClusterMetrics("cluster_channel_propose_latency_under_500ms_total", rg, true, &resps)
 
-	// ping
 	d.requestAndFillClusterMetrics("cluster_msg_ping_incoming_bytes_total", rg, true, &resps)
 	d.requestAndFillClusterMetrics("cluster_msg_ping_outgoing_bytes_total", rg, true, &resps)
 	d.requestAndFillClusterMetrics("cluster_msg_ping_incoming_count_total", rg, true, &resps)
@@ -259,14 +250,14 @@ func (d *metrics) systemMetrics(c *wkhttp.Context) {
 
 	d.requestAndFillSystemMetrics("system_extranet_outgoing_bytes_total", rg, true, &resps)
 
-	d.requestAndFillSystemMetrics("go_memstats_alloc_bytes", rg, false, &resps) // 内存使用
+	d.requestAndFillSystemMetrics("go_memstats_alloc_bytes", rg, false, &resps)
 
-	d.requestAndFillSystemMetrics("go_goroutines", rg, false, &resps) // goroutines数量
+	d.requestAndFillSystemMetrics("go_goroutines", rg, false, &resps)
 
-	d.requestAndFillSystemMetrics("go_gc_duration_seconds_count", rg, false, &resps) // gc次数
+	d.requestAndFillSystemMetrics("go_gc_duration_seconds_count", rg, false, &resps)
 
-	d.requestAndFillSystemMetrics("system_cpu_percent_total", rg, false, &resps) // cpu使用率
-	d.requestAndFillSystemMetrics("node_filefd_allocated", rg, false, &resps)    // 文件描述符数量
+	d.requestAndFillSystemMetrics("system_cpu_percent_total", rg, false, &resps)
+	d.requestAndFillSystemMetrics("node_filefd_allocated", rg, false, &resps)
 
 	sort.Slice(resps, func(i, j int) bool {
 		return resps[i].Timestamp < resps[j].Timestamp
@@ -552,31 +543,31 @@ func getRateByLabelFilterId(label string, filterId string) string {
 }
 
 type appMetricsResp struct {
-	ConnCount         int64 `json:"conn_count"`          // 连接数量
-	OnlineUserCount   int64 `json:"online_user_count"`   // 在线用户数量（一个用户可以有多个设备）
-	OnlineDeviceCount int64 `json:"online_device_count"` // 在线设备数量
+	ConnCount         int64 `json:"conn_count"`
+	OnlineUserCount   int64 `json:"online_user_count"`
+	OnlineDeviceCount int64 `json:"online_device_count"`
 
-	SendPacketCountRate    float64 `json:"send_packet_count_rate"`    // 发送包数量速率
-	SendPacketBytesRate    float64 `json:"send_packet_bytes_rate"`    // 发送字节数速率
-	SendackPacketCountRate float64 `json:"sendack_packet_count_rate"` // 发送应答包数量速率
-	SendackPacketBytesRate float64 `json:"sendack_packet_bytes_rate"` // 发送应答字节数速率
+	SendPacketCountRate    float64 `json:"send_packet_count_rate"`
+	SendPacketBytesRate    float64 `json:"send_packet_bytes_rate"`
+	SendackPacketCountRate float64 `json:"sendack_packet_count_rate"`
+	SendackPacketBytesRate float64 `json:"sendack_packet_bytes_rate"`
 
-	RecvPacketCountRate    float64 `json:"recv_packet_count_rate"`    // 接收包数量速率
-	RecvPacketBytesRate    float64 `json:"recv_packet_bytes_rate"`    // 接收字节数速率
-	RecvackPacketCountRate float64 `json:"recvack_packet_count_rate"` // 接收应答包数量速率
-	RecvackPacketBytesRate float64 `json:"recvack_packet_bytes_rate"` // 接收应答字节数速率
+	RecvPacketCountRate    float64 `json:"recv_packet_count_rate"`
+	RecvPacketBytesRate    float64 `json:"recv_packet_bytes_rate"`
+	RecvackPacketCountRate float64 `json:"recvack_packet_count_rate"`
+	RecvackPacketBytesRate float64 `json:"recvack_packet_bytes_rate"`
 
-	ConnPacketCountRate    float64 `json:"conn_packet_count_rate"`    // 连接包数量速率
-	ConnPacketBytesRate    float64 `json:"conn_packet_bytes_rate"`    // 连接字节数速率
-	ConnackPacketCountRate float64 `json:"connack_packet_count_rate"` // 连接应答包数量速率
-	ConnackPacketBytesRate float64 `json:"connack_packet_bytes_rate"` // 连接应答字节数速率
+	ConnPacketCountRate    float64 `json:"conn_packet_count_rate"`
+	ConnPacketBytesRate    float64 `json:"conn_packet_bytes_rate"`
+	ConnackPacketCountRate float64 `json:"connack_packet_count_rate"`
+	ConnackPacketBytesRate float64 `json:"connack_packet_bytes_rate"`
 
-	PingPacketCountRate float64 `json:"ping_packet_count_rate"` // ping包数量速率
-	PingPacketBytesRate float64 `json:"ping_packet_bytes_rate"` // ping字节数速率
-	PongPacketCountRate float64 `json:"pong_packet_count_rate"` // pong包数量速率
-	PongPacketBytesRate float64 `json:"pong_packet_bytes_rate"` // pong字节数速率
+	PingPacketCountRate float64 `json:"ping_packet_count_rate"`
+	PingPacketBytesRate float64 `json:"ping_packet_bytes_rate"`
+	PongPacketCountRate float64 `json:"pong_packet_count_rate"`
+	PongPacketBytesRate float64 `json:"pong_packet_bytes_rate"`
 
-	Timestamp int64 `json:"timestamp"` // 时间戳
+	Timestamp int64 `json:"timestamp"`
 }
 
 type clusterMetricsResp struct {
@@ -585,50 +576,50 @@ type clusterMetricsResp struct {
 	ChannelProposeLatencyOver500msRate  []*labelValue `json:"channel_propose_latency_over_500ms_rate"`
 	ChannelProposeLatencyUnder500msRate []*labelValue `json:"channel_propose_latency_under_500ms_rate"`
 
-	MsgPingIncomingBytesRate []*labelValue `json:"msg_ping_incoming_bytes_rate"` // 节点之间ping消息流入字节数
-	MsgPingOutgoingBytesRate []*labelValue `json:"msg_ping_outgoing_bytes_rate"` // 节点之间ping消息流出字节数
-	MsgPingIncomingCountRate []*labelValue `json:"msg_ping_incoming_count_rate"` // 节点之间ping消息流入数量
-	MsgPingOutgoingCountRate []*labelValue `json:"msg_ping_outgoing_count_rate"` // 节点之间ping消息流出数量
+	MsgPingIncomingBytesRate []*labelValue `json:"msg_ping_incoming_bytes_rate"`
+	MsgPingOutgoingBytesRate []*labelValue `json:"msg_ping_outgoing_bytes_rate"`
+	MsgPingIncomingCountRate []*labelValue `json:"msg_ping_incoming_count_rate"`
+	MsgPingOutgoingCountRate []*labelValue `json:"msg_ping_outgoing_count_rate"`
 
-	MsgIncomingCountRate []*labelValue `json:"msg_incoming_count_rate"` // 节点之间消息流入数量
-	MsgOutgoingCountRate []*labelValue `json:"msg_outgoing_count_rate"` // 节点之间消息流出数量
-	MsgIncomingBytesRate []*labelValue `json:"msg_incoming_bytes_rate"` // 节点之间消息流入字节数
-	MsgOutgoingBytesRate []*labelValue `json:"msg_outgoing_bytes_rate"` // 节点之间消息流出字节数
+	MsgIncomingCountRate []*labelValue `json:"msg_incoming_count_rate"`
+	MsgOutgoingCountRate []*labelValue `json:"msg_outgoing_count_rate"`
+	MsgIncomingBytesRate []*labelValue `json:"msg_incoming_bytes_rate"`
+	MsgOutgoingBytesRate []*labelValue `json:"msg_outgoing_bytes_rate"`
 
 	ChannelMsgIncomingCountRate []*labelValue `json:"channel_msg_incoming_count_rate"`
 	ChannelMsgOutgoingCountRate []*labelValue `json:"channel_msg_outgoing_count_rate"`
 	ChannelMsgIncomingBytesRate []*labelValue `json:"channel_msg_incoming_bytes_rate"`
 	ChannelMsgOutgoingBytesRate []*labelValue `json:"channel_msg_outgoing_bytes_rate"`
 
-	SendPacketIncomingCountRate []*labelValue `json:"sendpacket_incoming_count_rate"` // 节点之间发送包流入数量
-	SendPacketIncomingBytesRate []*labelValue `json:"sendpacket_incoming_bytes_rate"` // 节点之间发送包流入字节数
-	SendPacketOutgoingBytesRate []*labelValue `json:"sendpacket_outgoing_bytes_rate"` // 节点之间发送包流出字节数
-	SendPacketOutgoingCountRate []*labelValue `json:"sendpacket_outgoing_count_rate"` // 节点之间发送包流出数量
+	SendPacketIncomingCountRate []*labelValue `json:"sendpacket_incoming_count_rate"`
+	SendPacketIncomingBytesRate []*labelValue `json:"sendpacket_incoming_bytes_rate"`
+	SendPacketOutgoingBytesRate []*labelValue `json:"sendpacket_outgoing_bytes_rate"`
+	SendPacketOutgoingCountRate []*labelValue `json:"sendpacket_outgoing_count_rate"`
 
-	MsgSyncIncomingBytesRate []*labelValue `json:"msg_sync_incoming_bytes_rate"` // 节点之间同步消息流入字节数
-	MsgSyncOutgoingBytesRate []*labelValue `json:"msg_sync_outgoing_bytes_rate"` // 节点之间同步消息流出字节数
-	MsgSyncIncomingCountRate []*labelValue `json:"msg_sync_incoming_count_rate"` // 节点之间同步消息流入数量
-	MsgSyncOutgoingCountRate []*labelValue `json:"msg_sync_outgoing_count_rate"` // 节点之间同步消息流出数量
+	MsgSyncIncomingBytesRate []*labelValue `json:"msg_sync_incoming_bytes_rate"`
+	MsgSyncOutgoingBytesRate []*labelValue `json:"msg_sync_outgoing_bytes_rate"`
+	MsgSyncIncomingCountRate []*labelValue `json:"msg_sync_incoming_count_rate"`
+	MsgSyncOutgoingCountRate []*labelValue `json:"msg_sync_outgoing_count_rate"`
 
-	ChannelActiveCount []*labelValue `json:"channel_active_count"` // 激活的频道数量
+	ChannelActiveCount []*labelValue `json:"channel_active_count"`
 
-	Timestamp int64 `json:"timestamp"` // 时间戳
+	Timestamp int64 `json:"timestamp"`
 }
 
 type systemMetricsResp struct {
-	IntranetIncomingBytesRate []*labelValue `json:"intranet_incoming_bytes_rate"` // 内网流入字节数
-	IntranetOutgoingBytesRate []*labelValue `json:"intranet_outgoing_bytes_rate"` // 内网流出字节数
+	IntranetIncomingBytesRate []*labelValue `json:"intranet_incoming_bytes_rate"`
+	IntranetOutgoingBytesRate []*labelValue `json:"intranet_outgoing_bytes_rate"`
 
-	ExtranetIncomingBytesRate []*labelValue `json:"extranet_incoming_bytes_rate"` // 外网流入字节数
-	ExtranetOutgoingBytesRate []*labelValue `json:"extranet_outgoing_bytes_rate"` // 外网流出字节数
+	ExtranetIncomingBytesRate []*labelValue `json:"extranet_incoming_bytes_rate"`
+	ExtranetOutgoingBytesRate []*labelValue `json:"extranet_outgoing_bytes_rate"`
 
-	MemstatsAllocBytes     []*labelValue `json:"memstats_alloc_bytes"`      // 内存使用
-	Goroutines             []*labelValue `json:"goroutines"`                // goroutines数量
-	GCDurationSecondsCount []*labelValue `json:"gc_duration_seconds_count"` // 时间内gc次数
+	MemstatsAllocBytes     []*labelValue `json:"memstats_alloc_bytes"`
+	Goroutines             []*labelValue `json:"goroutines"`
+	GCDurationSecondsCount []*labelValue `json:"gc_duration_seconds_count"`
 
-	CpuPercent      []*labelValue `json:"cpu_percent"`      // cpu使用率
-	FilefdAllocated int64         `json:"filefd_allocated"` // 文件描述符数量
-	Timestamp       int64         `json:"timestamp"`        // 时间戳
+	CpuPercent      []*labelValue `json:"cpu_percent"`
+	FilefdAllocated int64         `json:"filefd_allocated"`
+	Timestamp       int64         `json:"timestamp"`
 }
 
 type labelValue struct {

@@ -19,7 +19,7 @@ type listener struct {
 	customAddr    string
 	customNetwork string
 	realAddr      net.Addr
-	addr          string // 监听地址 格式为 tcp://xxx.xxx.xxx.xxx:xxxx
+	addr          string
 	opts          *Options
 }
 
@@ -47,7 +47,7 @@ func (l *listener) init() error {
 func (l *listener) initTCPListener(network, addr string) error {
 	var sockOpts = []socket.Option{
 		{SetSockOpt: socket.SetNoDelay, Opt: 1},
-		{SetSockOpt: socket.SetReuseAddr, Opt: 1}, // 监听端口重用
+		{SetSockOpt: socket.SetReuseAddr, Opt: 1},
 	}
 	opts := l.opts
 
@@ -91,7 +91,6 @@ func (l *listener) initTCPListener(network, addr string) error {
 	return err
 }
 
-// addr format: tcp://xx.xxx.xx.xx:xxxx split
 func (l *listener) parseAddr(addr string) (network, address string, err error) {
 	if addr == "" {
 		return "", "", errors.New("empty address")

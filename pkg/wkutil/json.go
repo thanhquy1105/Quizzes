@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 )
 
-// 将对象转换为JSON
 func ToJson(obj interface{}) string {
 	jsonData, err := json.Marshal(obj)
 	if err != nil {

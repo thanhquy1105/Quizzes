@@ -1,21 +1,3 @@
-// Copyright (c) 2019 Andy Pan
-// Copyright (c) 2016 Aliaksandr Valialkin, VertaMedia
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-// Use of this source code is governed by a MIT license that can be found
-// at https://github.com/valyala/bytebufferpool/blob/master/LICENSE
-
 package ringbuffer
 
 import (
@@ -28,7 +10,7 @@ import (
 )
 
 const (
-	minBitSize = 6 // 2**6=64 is a CPU cache line size
+	minBitSize = 6
 	steps      = 20
 
 	minSize = 1 << minBitSize
@@ -37,14 +19,8 @@ const (
 	maxPercentile           = 0.95
 )
 
-// RingBuffer is the alias of ring.Buffer.
 type RingBuffer = ring.Buffer
 
-// Pool represents ring-buffer pool.
-//
-// Distinct pools may be used for distinct types of byte buffers.
-// Properly determined byte buffer types with their own pools may help to reduce
-// memory waste.
 type Pool struct {
 	calls       [steps]uint64
 	calibrating uint64
@@ -57,17 +33,8 @@ type Pool struct {
 
 var builtinPool Pool
 
-// Get returns an empty byte buffer from the pool.
-//
-// Got byte buffer may be returned to the pool via Put call.
-// This reduces the number of memory allocations required for byte buffer
-// management.
 func Get() *RingBuffer { return builtinPool.Get() }
 
-// Get returns new byte buffer with zero length.
-//
-// The byte buffer may be returned to the pool via Put after the use
-// in order to minimize GC overhead.
 func (p *Pool) Get() *RingBuffer {
 	v := p.pool.Get()
 	if v != nil {
@@ -76,15 +43,8 @@ func (p *Pool) Get() *RingBuffer {
 	return ring.New(int(atomic.LoadUint64(&p.defaultSize)))
 }
 
-// Put returns byte buffer to the pool.
-//
-// RingBuffer mustn't be touched after returning it to the pool,
-// otherwise, data races will occur.
 func Put(b *RingBuffer) { builtinPool.Put(b) }
 
-// Put releases byte buffer obtained via Get to the pool.
-//
-// The buffer mustn't be accessed after returning to the pool.
 func (p *Pool) Put(b *RingBuffer) {
 	idx := index(b.Len())
 

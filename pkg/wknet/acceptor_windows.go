@@ -14,8 +14,8 @@ type Acceptor struct {
 	eg          *Engine
 	wklog.Log
 	listen    *listener
-	listenWS  *listener // websocket
-	listenWSS *listener // websocket
+	listenWS  *listener
+	listenWSS *listener
 }
 
 func NewAcceptor(eg *Engine) *Acceptor {
@@ -108,7 +108,7 @@ func (a *Acceptor) start() error {
 }
 
 func (a *Acceptor) initTCPListener(wg *sync.WaitGroup) error {
-	// tcp
+
 	a.listen = newListener(a.eg.options.Addr, a.eg.options)
 	err := a.listen.init()
 	if err != nil {
@@ -122,7 +122,7 @@ func (a *Acceptor) initTCPListener(wg *sync.WaitGroup) error {
 }
 
 func (a *Acceptor) initWSListener(wg *sync.WaitGroup) error {
-	// ws
+
 	a.listenWS = newListener(a.eg.options.WsAddr, a.eg.options)
 	err := a.listenWS.init()
 	if err != nil {
@@ -136,7 +136,7 @@ func (a *Acceptor) initWSListener(wg *sync.WaitGroup) error {
 }
 
 func (a *Acceptor) initWSSListener(wg *sync.WaitGroup) error {
-	// wss
+
 	a.listenWSS = newListener(a.eg.options.WssAddr, a.eg.options)
 	err := a.listenWSS.init()
 	if err != nil {
@@ -172,9 +172,9 @@ func (a *Acceptor) acceptConn(connNetFd NetFd, ws bool, wss bool) error {
 			return err
 		}
 	}
-	// add conn to sub reactor
+
 	subReactor.AddConn(conn)
-	// call on connect
+
 	a.eg.eventHandler.OnConnect(conn)
 	return nil
 }

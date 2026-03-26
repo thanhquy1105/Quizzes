@@ -123,7 +123,7 @@ func BenchmarkRequestResp(b *testing.B) {
 	b.ReportAllocs()
 
 	b.RunParallel(func(pb *testing.PB) {
-		// 每个并发的测试 goroutine 会运行此代码
+
 		for pb.Next() {
 			resp, err := cli.Request("/test", []byte("hi"))
 			assert.NoError(b, err)

@@ -2,7 +2,6 @@ package wkserver
 
 import (
 	"sync"
-
 )
 
 type ConnManager struct {

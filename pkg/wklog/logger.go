@@ -12,12 +12,12 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var logger *zap.Logger      // info日志
-var traceLogger *zap.Logger // 轨迹日志
-var errorLogger *zap.Logger // 错误日志
-var warnLogger *zap.Logger  // 警告日志
-var panicLogger *zap.Logger // panic日志
-var focusLogger *zap.Logger // focus日志
+var logger *zap.Logger
+var traceLogger *zap.Logger
+var errorLogger *zap.Logger
+var warnLogger *zap.Logger
+var panicLogger *zap.Logger
+var focusLogger *zap.Logger
 var atom = zap.NewAtomicLevel()
 
 var opts *Options
@@ -36,12 +36,11 @@ func Configure(op *Options) {
 		writers = append(writers, zapcore.AddSync(os.Stdout))
 	}
 
-	// ====================== info ==========================
 	infoWriter := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   path.Join(opts.LogDir, "info.log"),
-		MaxSize:    500, // megabytes
+		MaxSize:    500,
 		MaxBackups: 3,
-		MaxAge:     28, // days
+		MaxAge:     28,
 	})
 	core := zapcore.NewCore(
 		zapcore.NewJSONEncoder(newEncoderConfig()),
@@ -50,12 +49,11 @@ func Configure(op *Options) {
 	)
 	logger = zap.New(core, loggerOpts...)
 
-	// ====================== trace ==========================
 	traceWriter := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   path.Join(opts.LogDir, "trace.log"),
-		MaxSize:    500, // megabytes
+		MaxSize:    500,
 		MaxBackups: 3,
-		MaxAge:     28, // days
+		MaxAge:     28,
 	})
 	core = zapcore.NewCore(
 		zapcore.NewJSONEncoder(newEncoderConfig()),
@@ -64,12 +62,11 @@ func Configure(op *Options) {
 	)
 	traceLogger = zap.New(core, loggerOpts...)
 
-	// ====================== error ==========================
 	errorWriter := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   path.Join(opts.LogDir, "error.log"),
-		MaxSize:    500, // megabytes
+		MaxSize:    500,
 		MaxBackups: 3,
-		MaxAge:     28, // days
+		MaxAge:     28,
 	})
 	core = zapcore.NewCore(
 		zapcore.NewJSONEncoder(newEncoderConfig()),
@@ -78,12 +75,11 @@ func Configure(op *Options) {
 	)
 	errorLogger = zap.New(core, loggerOpts...)
 
-	// ====================== warn ==========================
 	warnWriter := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   path.Join(opts.LogDir, "warn.log"),
-		MaxSize:    500, // megabytes
+		MaxSize:    500,
 		MaxBackups: 3,
-		MaxAge:     28, // days
+		MaxAge:     28,
 	})
 	core = zapcore.NewCore(
 		zapcore.NewJSONEncoder(newEncoderConfig()),
@@ -92,12 +88,11 @@ func Configure(op *Options) {
 	)
 	warnLogger = zap.New(core, loggerOpts...)
 
-	// ====================== panic ==========================
 	panicWriter := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   path.Join(opts.LogDir, "panic.log"),
-		MaxSize:    500, // megabytes
+		MaxSize:    500,
 		MaxBackups: 3,
-		MaxAge:     28, // days
+		MaxAge:     28,
 	})
 	core = zapcore.NewCore(
 		zapcore.NewJSONEncoder(newEncoderConfig()),
@@ -106,12 +101,11 @@ func Configure(op *Options) {
 	)
 	panicLogger = zap.New(core, append(loggerOpts, zap.AddStacktrace(zapcore.PanicLevel))...)
 
-	// ====================== focus ==========================
 	focusWriter := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   path.Join(opts.LogDir, "focus.log"),
-		MaxSize:    500, // megabytes
+		MaxSize:    500,
 		MaxBackups: 3,
-		MaxAge:     28, // days
+		MaxAge:     28,
 	})
 	core = zapcore.NewCore(
 		zapcore.NewJSONEncoder(newEncoderConfig()),
@@ -131,7 +125,7 @@ func Level() zapcore.Level {
 
 func newEncoderConfig() zapcore.EncoderConfig {
 	return zapcore.EncoderConfig{
-		// Keys can be anything except the empty string.
+
 		TimeKey:       "time",
 		LevelKey:      "level",
 		NameKey:       "logger",
@@ -139,8 +133,8 @@ func newEncoderConfig() zapcore.EncoderConfig {
 		MessageKey:    "msg",
 		StacktraceKey: "stacktrace",
 		LineEnding:    zapcore.DefaultLineEnding,
-		EncodeLevel:   zapcore.LowercaseLevelEncoder, // 小写编码器
-		EncodeCaller:  zapcore.FullCallerEncoder,     // 全路径编码器
+		EncodeLevel:   zapcore.LowercaseLevelEncoder,
+		EncodeCaller:  zapcore.FullCallerEncoder,
 		EncodeName:    zapcore.FullNameEncoder,
 		EncodeTime: func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 			enc.AppendString(t.Format("2006-01-02T15:04:05.999999999-07:00"))
@@ -151,11 +145,6 @@ func newEncoderConfig() zapcore.EncoderConfig {
 	}
 }
 
-// func timeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-// 	enc.AppendString(t.Format("2006-01-02 15:04:05.000"))
-// }
-
-// Info Info
 func Info(msg string, fields ...zap.Field) {
 
 	if logger == nil {
@@ -165,7 +154,6 @@ func Info(msg string, fields ...zap.Field) {
 
 }
 
-// Trace Trace
 func Trace(msg string, fields ...zap.Field) {
 
 	if traceLogger == nil {
@@ -175,7 +163,6 @@ func Trace(msg string, fields ...zap.Field) {
 
 }
 
-// Debug Debug
 func Debug(msg string, fields ...zap.Field) {
 
 	if logger == nil {
@@ -185,7 +172,6 @@ func Debug(msg string, fields ...zap.Field) {
 
 }
 
-// Error Error
 func Error(msg string, fields ...zap.Field) {
 
 	if errorLogger == nil {
@@ -210,7 +196,6 @@ func Panic(msg string, fields ...zap.Field) {
 	panicLogger.Panic(msg, fields...)
 }
 
-// Warn Warn
 func Warn(msg string, fields ...zap.Field) {
 
 	if warnLogger == nil {
@@ -247,7 +232,6 @@ func Sync() error {
 	return nil
 }
 
-// Log Log
 type Log interface {
 	Info(msg string, fields ...zap.Field)
 	MessageTrace(msg string, clientMsgNo string, operationName string, fields ...zap.Field)
@@ -260,37 +244,33 @@ type Log interface {
 	Foucs(msg string, fields ...zap.Field)
 }
 
-// WKLog TLog
 type WKLog struct {
-	prefix string // 日志前缀
+	prefix string
 }
 
-// NewWKLog NewWKLog
 func NewWKLog(prefix string) *WKLog {
 
 	return &WKLog{prefix: prefix}
 }
 
-// Info Info
 func (t *WKLog) Info(msg string, fields ...zap.Field) {
 	var b strings.Builder
-	b.WriteString("【")
+	b.WriteString("")
 	b.WriteString(t.prefix)
-	b.WriteString("】")
+	b.WriteString("")
 	b.WriteString(msg)
 	Info(b.String(), fields...)
 }
 
-// Trace Trace
 func (t *WKLog) Trace(msg string, action string, fields ...zap.Field) {
 	if !opts.TraceOn {
 		return
 	}
 
 	var b strings.Builder
-	b.WriteString("【")
+	b.WriteString("")
 	b.WriteString(t.prefix)
-	b.WriteString("】")
+	b.WriteString("")
 	b.WriteString(msg)
 	if len(fields) == 0 {
 		Trace(b.String(), zap.Int("trace", 1), zap.String("action", action))
@@ -307,9 +287,9 @@ func (t *WKLog) MessageTrace(msg string, no string, action string, fields ...zap
 	}
 
 	var b strings.Builder
-	b.WriteString("【")
+	b.WriteString("")
 	b.WriteString(t.prefix)
-	b.WriteString("】")
+	b.WriteString("")
 	b.WriteString(msg)
 	if len(fields) == 0 {
 		Trace(b.String(), zap.Int("trace", 1), zap.String("no", no), zap.String("action", action))
@@ -320,58 +300,55 @@ func (t *WKLog) MessageTrace(msg string, no string, action string, fields ...zap
 
 }
 
-// Debug Debug
 func (t *WKLog) Debug(msg string, fields ...zap.Field) {
 	var b strings.Builder
-	b.WriteString("【")
+	b.WriteString("")
 	b.WriteString(t.prefix)
-	b.WriteString("】")
+	b.WriteString("")
 	b.WriteString(msg)
 	Debug(b.String(), fields...)
 }
 
-// Error Error
 func (t *WKLog) Error(msg string, fields ...zap.Field) {
 	var b strings.Builder
-	b.WriteString("【")
+	b.WriteString("")
 	b.WriteString(t.prefix)
-	b.WriteString("】")
+	b.WriteString("")
 	b.WriteString(msg)
 	Error(b.String(), fields...)
 }
 
-// Warn Warn
 func (t *WKLog) Warn(msg string, fields ...zap.Field) {
 	var b strings.Builder
-	b.WriteString("【")
+	b.WriteString("")
 	b.WriteString(t.prefix)
-	b.WriteString("】")
+	b.WriteString("")
 	b.WriteString(msg)
 	Warn(b.String(), fields...)
 }
 
 func (t *WKLog) Fatal(msg string, fields ...zap.Field) {
 	var b strings.Builder
-	b.WriteString("【")
+	b.WriteString("")
 	b.WriteString(t.prefix)
-	b.WriteString("】")
+	b.WriteString("")
 	b.WriteString(msg)
 	Fatal(b.String(), fields...)
 }
 func (t *WKLog) Panic(msg string, fields ...zap.Field) {
 	var b strings.Builder
-	b.WriteString("【")
+	b.WriteString("")
 	b.WriteString(t.prefix)
-	b.WriteString("】")
+	b.WriteString("")
 	b.WriteString(msg)
 	Panic(b.String(), fields...)
 }
 
 func (t *WKLog) Foucs(msg string, fields ...zap.Field) {
 	var b strings.Builder
-	b.WriteString("【")
+	b.WriteString("")
 	b.WriteString(t.prefix)
-	b.WriteString("】")
+	b.WriteString("")
 	b.WriteString(msg)
 	Foucs(b.String(), fields...)
 }

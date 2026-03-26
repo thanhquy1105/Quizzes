@@ -93,6 +93,6 @@ func TestEngine(t *testing.T) {
 			}
 		}(cli)
 	}
-	// fmt.Println("finishChan wait")
+
 	<-finishChan
 }

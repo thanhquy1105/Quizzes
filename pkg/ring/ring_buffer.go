@@ -1,22 +1,3 @@
-// Copyright (c) 2019 Chao yuepan, Andy Pan, Allen Xu
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-
 package ring
 
 import (
@@ -29,30 +10,23 @@ import (
 )
 
 const (
-	// MinRead is the minimum slice size passed to a Read call by
-	// Buffer.ReadFrom. As long as the Buffer has at least MinRead bytes beyond
-	// what is required to hold the contents of r, ReadFrom will not grow the
-	// underlying buffer.
 	MinRead = 512
-	// DefaultBufferSize is the first-time allocation on a ring-buffer.
-	DefaultBufferSize   = 1024     // 1KB
-	bufferGrowThreshold = 4 * 1024 // 4KB
+
+	DefaultBufferSize   = 1024
+	bufferGrowThreshold = 4 * 1024
 )
 
-// ErrIsEmpty will be returned when trying to read an empty ring-buffer.
 var ErrIsEmpty = errors.New("ring-buffer is empty")
 
-// Buffer is a circular buffer that implement io.ReaderWriter interface.
 type Buffer struct {
 	bs      [][]byte
 	buf     []byte
 	size    int
-	r       int // next position to read
-	w       int // next position to write
+	r       int
+	w       int
 	isEmpty bool
 }
 
-// New returns a new Buffer whose buffer has the given size.
 func New(size int) *Buffer {
 	if size == 0 {
 		return &Buffer{bs: make([][]byte, 2), isEmpty: true}
@@ -71,7 +45,6 @@ const (
 	maxintHeadBit = 1 << (bitSize - 2)
 )
 
-// CeilToPowerOfTwo returns n if it is a power-of-two, otherwise the next-highest power-of-two.
 func CeilToPowerOfTwo(n int) int {
 	if n&maxintHeadBit != 0 && n > maxintHeadBit {
 		panic("argument is too large")
@@ -92,8 +65,6 @@ func CeilToPowerOfTwo(n int) int {
 	return n
 }
 
-// Peek returns the next n bytes without advancing the read pointer,
-// it returns all bytes when n <= 0.
 func (rb *Buffer) Peek(n int) (head []byte, tail []byte) {
 	if rb.isEmpty {
 		return
@@ -104,7 +75,7 @@ func (rb *Buffer) Peek(n int) (head []byte, tail []byte) {
 	}
 
 	if rb.w > rb.r {
-		m := rb.w - rb.r // length of ring-buffer
+		m := rb.w - rb.r
 		if m > n {
 			m = n
 		}
@@ -112,7 +83,7 @@ func (rb *Buffer) Peek(n int) (head []byte, tail []byte) {
 		return
 	}
 
-	m := rb.size - rb.r + rb.w // length of ring-buffer
+	m := rb.size - rb.r + rb.w
 	if m > n {
 		m = n
 	}
@@ -129,10 +100,8 @@ func (rb *Buffer) Peek(n int) (head []byte, tail []byte) {
 	return
 }
 
-// PeekFromPos returns the next n bytes from the specified start position without advancing the read pointer,
-// it returns all bytes when n <= 0.
 func (rb *Buffer) PeekFromPos(start, n int) (head []byte, tail []byte) {
-	// 检查起始位置是否有效
+
 	if start < 0 || start >= rb.size {
 		return nil, nil
 	}
@@ -141,18 +110,16 @@ func (rb *Buffer) PeekFromPos(start, n int) (head []byte, tail []byte) {
 		return nil, nil
 	}
 
-	// 如果 n <= 0，返回所有数据
 	if n <= 0 {
 		return rb.peekAll()
 	}
 
-	// 计算读取的数据的实际长度
 	var m int
 	if start < rb.r {
-		// 如果起始位置小于读取位置 r，说明数据是跨越了缓冲区的尾部
+
 		m = rb.size - start + rb.w
 	} else {
-		// 如果起始位置大于等于读取位置 r，则在缓冲区内部连续读取
+
 		m = rb.w - start
 	}
 
@@ -160,7 +127,6 @@ func (rb *Buffer) PeekFromPos(start, n int) (head []byte, tail []byte) {
 		m = n
 	}
 
-	// 从 start 开始读取数据，检查是否跨越环形缓冲区的边界
 	if start+m <= rb.size {
 		head = rb.buf[start : start+m]
 	} else {
@@ -173,7 +139,6 @@ func (rb *Buffer) PeekFromPos(start, n int) (head []byte, tail []byte) {
 	return
 }
 
-// peekAll returns all bytes without advancing the read pointer.
 func (rb *Buffer) peekAll() (head []byte, tail []byte) {
 	if rb.isEmpty {
 		return
@@ -192,7 +157,6 @@ func (rb *Buffer) peekAll() (head []byte, tail []byte) {
 	return
 }
 
-// peekAll returns all bytes without advancing the read pointer.
 func (rb *Buffer) peekAllFrom(start int) (head []byte, tail []byte) {
 	if rb.isEmpty {
 		return
@@ -211,7 +175,6 @@ func (rb *Buffer) peekAllFrom(start int) (head []byte, tail []byte) {
 	return
 }
 
-// Discard skips the next n bytes by advancing the read pointer.
 func (rb *Buffer) Discard(n int) (discarded int, err error) {
 	if n <= 0 {
 		return 0, nil
@@ -226,17 +189,6 @@ func (rb *Buffer) Discard(n int) (discarded int, err error) {
 	return
 }
 
-// Read reads up to len(p) bytes into p. It returns the number of bytes read (0 <= n <= len(p)) and any error
-// encountered.
-// Even if Read returns n < len(p), it may use all of p as scratch space during the call.
-// If some data is available but not len(p) bytes, Read conventionally returns what is available instead of waiting
-// for more.
-// When Read encounters an error or end-of-file condition after successfully reading n > 0 bytes,
-// it returns the number of bytes read. It may return the (non-nil) error from the same call or return the
-// error (and n == 0) from a subsequent call.
-// Callers should always process the n > 0 bytes returned before considering the error err.
-// Doing so correctly handles I/O errors that happen after reading some bytes and also both of the allowed EOF
-// behaviors.
 func (rb *Buffer) Read(p []byte) (n int, err error) {
 	if len(p) == 0 {
 		return 0, nil
@@ -280,7 +232,6 @@ func (rb *Buffer) Read(p []byte) (n int, err error) {
 	return
 }
 
-// ReadByte reads and returns the next byte from the input or ErrIsEmpty.
 func (rb *Buffer) ReadByte() (b byte, err error) {
 	if rb.isEmpty {
 		return 0, ErrIsEmpty
@@ -297,12 +248,6 @@ func (rb *Buffer) ReadByte() (b byte, err error) {
 	return
 }
 
-// Write writes len(p) bytes from p to the underlying buf.
-// It returns the number of bytes written from p (n == len(p) > 0) and any error encountered that caused the write to
-// stop early.
-// If the length of p is greater than the writable capacity of this ring-buffer, it will allocate more memory to
-// this ring-buffer.
-// Write must not modify the slice data, even temporarily.
 func (rb *Buffer) Write(p []byte) (n int, err error) {
 	n = len(p)
 	if n == 0 {
@@ -339,7 +284,6 @@ func (rb *Buffer) Write(p []byte) (n int, err error) {
 	return
 }
 
-// WriteByte writes one byte into buffer.
 func (rb *Buffer) WriteByte(c byte) error {
 	if rb.Available() < 1 {
 		rb.grow(1)
@@ -355,7 +299,6 @@ func (rb *Buffer) WriteByte(c byte) error {
 	return nil
 }
 
-// Buffered returns the length of available bytes to read.
 func (rb *Buffer) Buffered() int {
 	if rb.r == rb.w {
 		if rb.isEmpty {
@@ -371,17 +314,14 @@ func (rb *Buffer) Buffered() int {
 	return rb.size - rb.r + rb.w
 }
 
-// Len returns the length of the underlying buffer.
 func (rb *Buffer) Len() int {
 	return len(rb.buf)
 }
 
-// Cap returns the size of the underlying buffer.
 func (rb *Buffer) Cap() int {
 	return rb.size
 }
 
-// Available returns the length of available bytes to write.
 func (rb *Buffer) Available() int {
 	if rb.r == rb.w {
 		if rb.isEmpty {
@@ -397,12 +337,10 @@ func (rb *Buffer) Available() int {
 	return rb.size - rb.w + rb.r
 }
 
-// WriteString writes the contents of the string s to buffer, which accepts a slice of bytes.
 func (rb *Buffer) WriteString(s string) (int, error) {
 	return rb.Write(StringToBytes(s))
 }
 
-// Bytes returns all available read bytes. It does not move the read pointer and only copy the available data.
 func (rb *Buffer) Bytes() []byte {
 	if rb.isEmpty {
 		return nil
@@ -428,7 +366,6 @@ func (rb *Buffer) Bytes() []byte {
 	return bb
 }
 
-// ReadFrom implements io.ReaderFrom.
 func (rb *Buffer) ReadFrom(r io.Reader) (n int64, err error) {
 	var m int
 	for {
@@ -480,7 +417,6 @@ func (rb *Buffer) ReadFrom(r io.Reader) (n int64, err error) {
 	}
 }
 
-// WriteTo implements io.WriterTo.
 func (rb *Buffer) WriteTo(w io.Writer) (int64, error) {
 	if rb.isEmpty {
 		return 0, ErrIsEmpty
@@ -557,17 +493,14 @@ func (rb *Buffer) WriteTo(w io.Writer) (int64, error) {
 	return cum, nil
 }
 
-// IsFull tells if this ring-buffer is full.
 func (rb *Buffer) IsFull() bool {
 	return rb.r == rb.w && !rb.isEmpty
 }
 
-// IsEmpty tells if this ring-buffer is empty.
 func (rb *Buffer) IsEmpty() bool {
 	return rb.isEmpty
 }
 
-// Reset the read pointer and write pointer to zero.
 func (rb *Buffer) Reset() {
 	rb.isEmpty = true
 	rb.r, rb.w = 0, 0
@@ -586,11 +519,11 @@ func (rb *Buffer) grow(newCap int) {
 			if n < bufferGrowThreshold {
 				newCap = doubleCap
 			} else {
-				// Check 0 < n to detect overflow and prevent an infinite loop.
+
 				for 0 < n && n < newCap {
 					n += n / 4
 				}
-				// The n calculation doesn't overflow, set n to newCap.
+
 				if n > 0 {
 					newCap = n
 				}
@@ -610,13 +543,10 @@ func (rb *Buffer) grow(newCap int) {
 	}
 }
 
-// StringToBytes converts string to a byte slice without memory allocation.
-//
-// Note it may break if the implementation of string or slice header changes in the future go versions.
 func StringToBytes(s string) (b []byte) {
-	/* #nosec G103 */
+
 	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	/* #nosec G103 */
+
 	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
 
 	bh.Data, bh.Len, bh.Cap = sh.Data, sh.Len, sh.Len

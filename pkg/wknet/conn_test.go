@@ -110,8 +110,8 @@ func TestBatchTlsConn(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 200)
 
-	cliCount := 100 // 客户端数量
-	msgCount := 100 // 每个客户端发送的消息数量
+	cliCount := 100
+	msgCount := 100
 
 	finishChan := make(chan struct{})
 	e.OnData(func(conn Conn) error {

@@ -8,16 +8,13 @@ import (
 	"go.uber.org/zap"
 )
 
-// Logger instance a Logger middleware with wklog.
 func LoggerWithWklog(log wklog.Log) HandlerFunc {
 	return func(c *Context) {
-		// Start timer
+
 		start := time.Now()
 
-		// Process request
 		c.Next()
 
-		// Stop timers
 		latency := time.Since(start)
 
 		if latency > time.Minute {

@@ -12,13 +12,12 @@ import (
 )
 
 type Options struct {
-	// Endpoint is the address of the collector to which the exporter will send the spans.
 	ServiceName      string
 	ServiceHostName  string
 	PrometheusApiUrl string
 	ReqTimeout       time.Duration
 
-	prometheusClient api.Client // prometheus client
+	prometheusClient api.Client
 	prometheusApi    v1.API
 }
 

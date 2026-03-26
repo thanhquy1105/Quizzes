@@ -20,18 +20,18 @@ import (
 type PollEvent int
 
 const (
-	PollEventUnknown PollEvent = 1 << iota // 未知事件
-	PollEventAccept                        // 接受
-	PollEventRead                          // 读事件
-	PollEventWrite                         // 写事件
-	PollEventClose                         // 错误事件
+	PollEventUnknown PollEvent = 1 << iota
+	PollEventAccept
+	PollEventRead
+	PollEventWrite
+	PollEventClose
 )
 
 type listener struct {
 	customAddr    string
 	customNetwork string
 	realAddr      net.Addr
-	addr          string // 监听地址 格式为 tcp://xxx.xxx.xxx.xxx:xxxx
+	addr          string
 	opts          *Options
 	ln            net.Listener
 	wklog.Log
@@ -90,7 +90,6 @@ func (l *listener) initTCPListener(network, addr string) error {
 	return nil
 }
 
-// addr format: tcp://xx.xxx.xx.xx:xxxx split
 func (l *listener) parseAddr(addr string) (network, address string, err error) {
 	if addr == "" {
 		return "", "", errors.New("empty address")

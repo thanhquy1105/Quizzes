@@ -7,7 +7,6 @@ import (
 	"time"
 )
 
-// 生成测试数据
 func generateStringSlice(size int, duplicateRate float64) []string {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -16,13 +15,11 @@ func generateStringSlice(size int, duplicateRate float64) []string {
 		uniqueCount = 1
 	}
 
-	// 生成唯一值
 	unique := make([]string, uniqueCount)
 	for i := 0; i < uniqueCount; i++ {
 		unique[i] = fmt.Sprintf("item_%d", i)
 	}
 
-	// 生成包含重复的数组
 	result := make([]string, size)
 	for i := 0; i < size; i++ {
 		result[i] = unique[r.Intn(uniqueCount)]
@@ -39,13 +36,11 @@ func generateUint64Slice(size int, duplicateRate float64) []uint64 {
 		uniqueCount = 1
 	}
 
-	// 生成唯一值
 	unique := make([]uint64, uniqueCount)
 	for i := 0; i < uniqueCount; i++ {
 		unique[i] = uint64(i)
 	}
 
-	// 生成包含重复的数组
 	result := make([]uint64, size)
 	for i := 0; i < size; i++ {
 		result[i] = unique[r.Intn(uniqueCount)]
@@ -54,7 +49,6 @@ func generateUint64Slice(size int, duplicateRate float64) []uint64 {
 	return result
 }
 
-// 旧的实现（用于性能对比）
 func removeRepeatedElementOld(arr []string) []string {
 	newArr := make([]string, 0, len(arr))
 	for i := 0; i < len(arr); i++ {
@@ -89,10 +83,9 @@ func removeRepeatedElementOfUint64Old(arr []uint64) []uint64 {
 	return newArr
 }
 
-// 基准测试：字符串去重
 func BenchmarkStringDedup(b *testing.B) {
 	sizes := []int{10, 100, 1000, 10000}
-	duplicateRates := []float64{0.1, 0.5, 0.9} // 10%, 50%, 90% 重复率
+	duplicateRates := []float64{0.1, 0.5, 0.9}
 
 	for _, size := range sizes {
 		for _, rate := range duplicateRates {
@@ -101,7 +94,7 @@ func BenchmarkStringDedup(b *testing.B) {
 			b.Run(fmt.Sprintf("Old_Size%d_Dup%.0f%%", size, rate*100), func(b *testing.B) {
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					// 复制数据避免修改原数组
+
 					testData := make([]string, len(data))
 					copy(testData, data)
 					_ = removeRepeatedElementOld(testData)
@@ -111,7 +104,7 @@ func BenchmarkStringDedup(b *testing.B) {
 			b.Run(fmt.Sprintf("New_Size%d_Dup%.0f%%", size, rate*100), func(b *testing.B) {
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					// 复制数据避免修改原数组
+
 					testData := make([]string, len(data))
 					copy(testData, data)
 					_ = RemoveRepeatedElement(testData)
@@ -121,7 +114,7 @@ func BenchmarkStringDedup(b *testing.B) {
 			b.Run(fmt.Sprintf("Generic_Size%d_Dup%.0f%%", size, rate*100), func(b *testing.B) {
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					// 复制数据避免修改原数组
+
 					testData := make([]string, len(data))
 					copy(testData, data)
 					_ = RemoveRepeatedElementGeneric(testData)
@@ -131,7 +124,7 @@ func BenchmarkStringDedup(b *testing.B) {
 			b.Run(fmt.Sprintf("Optimized_Size%d_Dup%.0f%%", size, rate*100), func(b *testing.B) {
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					// 复制数据避免修改原数组
+
 					testData := make([]string, len(data))
 					copy(testData, data)
 					_ = RemoveRepeatedElementOptimized(testData)
@@ -141,7 +134,6 @@ func BenchmarkStringDedup(b *testing.B) {
 	}
 }
 
-// 基准测试：uint64 去重
 func BenchmarkUint64Dedup(b *testing.B) {
 	sizes := []int{10, 100, 1000, 10000}
 	duplicateRates := []float64{0.1, 0.5, 0.9}
@@ -171,7 +163,6 @@ func BenchmarkUint64Dedup(b *testing.B) {
 	}
 }
 
-// 基准测试：原地去重
 func BenchmarkInPlaceDedup(b *testing.B) {
 	data := generateStringSlice(1000, 0.5)
 
@@ -194,7 +185,6 @@ func BenchmarkInPlaceDedup(b *testing.B) {
 	})
 }
 
-// 功能测试
 func TestRemoveRepeatedElement(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -225,13 +215,12 @@ func TestRemoveRepeatedElement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// 测试新实现
+
 			result := RemoveRepeatedElement(tt.input)
 			if !equalStringSlices(result, tt.expected) {
 				t.Errorf("RemoveRepeatedElement() = %v, want %v", result, tt.expected)
 			}
 
-			// 测试泛型实现
 			resultGeneric := RemoveRepeatedElementGeneric(tt.input)
 			if !equalStringSlices(resultGeneric, tt.expected) {
 				t.Errorf("RemoveRepeatedElementGeneric() = %v, want %v", resultGeneric, tt.expected)
@@ -305,7 +294,6 @@ func TestRemoveRepeatedElementWithStats(t *testing.T) {
 	}
 }
 
-// 辅助函数
 func equalStringSlices(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
@@ -330,12 +318,11 @@ func equalUint64Slices(a, b []uint64) bool {
 	return true
 }
 
-// 示例测试
 func ExampleRemoveRepeatedElement() {
 	input := []string{"apple", "banana", "apple", "cherry", "banana"}
 	result := RemoveRepeatedElement(input)
 	fmt.Println(result)
-	// Output: [apple banana cherry]
+
 }
 
 func ExampleRemoveRepeatedElementWithStats() {
@@ -344,7 +331,5 @@ func ExampleRemoveRepeatedElementWithStats() {
 	fmt.Printf("Result: %v\n", result)
 	fmt.Printf("Original: %d, Unique: %d, Duplicates: %d, Rate: %.1f%%\n",
 		stats.OriginalCount, stats.UniqueCount, stats.DuplicateCount, stats.DuplicationRate)
-	// Output:
-	// Result: [a b c]
-	// Original: 6, Unique: 3, Duplicates: 3, Rate: 50.0%
+
 }

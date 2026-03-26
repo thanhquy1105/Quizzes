@@ -11,14 +11,14 @@ import (
 )
 
 type Engine struct {
-	connMatrix      *connMatrix              // 在线连接
-	connsUnixLock   deadlock.RWMutex         // 在线连接锁
-	options         *Options                 // 配置
-	eventHandler    *EventHandler            // 事件
-	reactorMain     *ReactorMain             // 主reactor
-	timingWheel     *timingwheel.TimingWheel // Time wheel delay task
-	defaultConnPool *sync.Pool               // 默认连接对象池
-	clientIDGen     atomic.Int64             // 客户端ID生成器
+	connMatrix      *connMatrix
+	connsUnixLock   deadlock.RWMutex
+	options         *Options
+	eventHandler    *EventHandler
+	reactorMain     *ReactorMain
+	timingWheel     *timingwheel.TimingWheel
+	defaultConnPool *sync.Pool
+	clientIDGen     atomic.Int64
 }
 
 func NewEngine(opts ...Option) *Engine {
@@ -99,7 +99,6 @@ func (e *Engine) ConnCount() int {
 	return int(e.connMatrix.loadCount())
 }
 
-// Schedule 延迟任务
 func (e *Engine) Schedule(interval time.Duration, f func()) *timingwheel.Timer {
 	return e.timingWheel.ScheduleFunc(&everyScheduler{
 		Interval: interval,
@@ -144,7 +143,7 @@ func (e *Engine) GenClientID() int64 {
 
 	cid := e.clientIDGen.Load()
 
-	if cid >= 1<<32-1 { // 如果超过或等于 int32最大值 这客户端ID从新从0开始生成，int32有几十亿大 如果从1开始生成再回到1 原来属于1的客户端应该早就销毁了。
+	if cid >= 1<<32-1 {
 		e.clientIDGen.Store(0)
 	}
 	return e.clientIDGen.Inc()

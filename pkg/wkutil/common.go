@@ -11,7 +11,6 @@ import (
 	"time"
 )
 
-// BoolToInt bool值转换为int值
 func BoolToInt(b bool) int {
 	if b {
 		return 1
@@ -19,7 +18,6 @@ func BoolToInt(b bool) int {
 	return 0
 }
 
-// IntToBool int值转换为bool
 func IntToBool(b int) bool {
 	if b == 1 {
 		return true
@@ -27,7 +25,6 @@ func IntToBool(b int) bool {
 	return false
 }
 
-// BoolToInt bool值转换为int值
 func BoolToUint8(b bool) uint8 {
 	if b {
 		return 1
@@ -35,13 +32,11 @@ func BoolToUint8(b bool) uint8 {
 	return 0
 }
 
-// IntToBool int值转换为bool
 func Uint8ToBool(b uint8) bool {
 
 	return b == 1
 }
 
-// ToJSON 将对象转换为JSON
 func ToJSON(obj interface{}) string {
 	jsonData, err := json.Marshal(obj)
 	if err != nil {
@@ -51,14 +46,12 @@ func ToJSON(obj interface{}) string {
 	return string(jsonData)
 }
 
-// JSONToMap JsonToMap
 func JSONToMap(json string) (map[string]interface{}, error) {
 	var resultMap map[string]interface{}
 	err := ReadJSONByByte([]byte(json), &resultMap)
 	return resultMap, err
 }
 
-// ReadJSONByByte 读取JSON
 func ReadJSONByByte(body []byte, obj interface{}) error {
 	mdz := json.NewDecoder(bytes.NewBuffer(body))
 
@@ -135,7 +128,6 @@ var tenToAny map[int]string = map[int]string{
 	60: "Y",
 	61: "Z"}
 
-// DecimalToAny 10进制转任意进制
 func DecimalToAny(num int64, n int) string {
 	newNumStr := ""
 	var remainder int64
@@ -153,7 +145,6 @@ func DecimalToAny(num int64, n int) string {
 	return newNumStr
 }
 
-// map根据value找key
 func findKey(in string) int {
 	result := -1
 	for k, v := range tenToAny {
@@ -164,7 +155,6 @@ func findKey(in string) int {
 	return result
 }
 
-// AnyToDecimal 任意进制转10进制
 func AnyToDecimal(num string, n int) int64 {
 	var newNum float64
 	newNum = 0.0
@@ -181,7 +171,6 @@ func AnyToDecimal(num string, n int) int64 {
 	return int64(newNum)
 }
 
-// GetRandomString 生成随机字符串
 func GetRandomString(num int) string {
 	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	bytes := []byte(str)
@@ -193,13 +182,11 @@ func GetRandomString(num int) string {
 	return string(result)
 }
 
-// RemoveRepeatedElement 高性能去重函数，使用 map 实现 O(n) 时间复杂度
 func RemoveRepeatedElement(arr []string) []string {
 	if len(arr) == 0 {
 		return arr
 	}
 
-	// 使用 map 来跟踪已见过的元素，保持原始顺序
 	seen := make(map[string]bool, len(arr))
 	result := make([]string, 0, len(arr))
 
@@ -213,13 +200,11 @@ func RemoveRepeatedElement(arr []string) []string {
 	return result
 }
 
-// RemoveRepeatedElementOfUint64 高性能去重函数，使用 map 实现 O(n) 时间复杂度
 func RemoveRepeatedElementOfUint64(arr []uint64) []uint64 {
 	if len(arr) == 0 {
 		return arr
 	}
 
-	// 使用 map 来跟踪已见过的元素，保持原始顺序
 	seen := make(map[uint64]bool, len(arr))
 	result := make([]uint64, 0, len(arr))
 

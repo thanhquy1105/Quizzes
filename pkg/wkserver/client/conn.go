@@ -21,23 +21,22 @@ import (
 type connStatus uint8
 
 const (
-	disconnect connStatus = iota // 断开
-	connecting                   // 连接中
-	connected                    // 已连接
-	authing                      // 认证中
-	authed                       //已认证
-
+	disconnect connStatus = iota
+	connecting
+	connected
+	authing
+	authed
 )
 
 type conn struct {
-	status      atomic.Value // 是否已认证
+	status      atomic.Value
 	c           *Client
-	addr        string // 服务端地址
+	addr        string
 	gc          gnet.Conn
-	idleTick    int // 空闲tick数
+	idleTick    int
 	timeoutTick int
 
-	no string // 唯一编号，每次重连都会变
+	no string
 
 	wklog.Log
 }
@@ -83,7 +82,7 @@ func (c *conn) startDial() {
 		no: c.no,
 	})
 	if err != nil {
-		// c.Foucs("conn failed", zap.Error(err))
+
 		c.status.Store(disconnect)
 	} else {
 		c.status.Store(connected)
@@ -93,7 +92,7 @@ func (c *conn) startDial() {
 
 func (c *conn) startAuth() {
 	err := c.sendAuth()
-	if err != nil { // 如果认证失败，断开链接，让其重连
+	if err != nil {
 		c.Foucs("auth failed", zap.Error(err))
 		c.status.Store(disconnect)
 	} else {
@@ -135,7 +134,7 @@ func (c *conn) sendAuth() error {
 		}
 		ack := x.(*proto.Connack)
 		if ack.Status != proto.StatusOK {
-			return fmt.Errorf("connect error：%d", ack.Status)
+			return fmt.Errorf("connect error%d", ack.Status)
 		}
 		return nil
 	case <-timeoutCtx.Done():
@@ -146,7 +145,6 @@ func (c *conn) sendAuth() error {
 func (c *conn) tick() {
 	c.idleTick++
 
-	// 定时发送心跳
 	if c.idleTick >= c.c.opts.HeartbeatTick {
 		c.idleTick = 0
 		c.sendHeartbeat()
@@ -166,7 +164,6 @@ func (c *conn) reconnect() {
 	_ = c.gc.Close()
 }
 
-// 发送心跳
 func (c *conn) sendHeartbeat() {
 	data, err := c.c.proto.Encode([]byte{proto.MsgTypeHeartbeat.Uint8()}, proto.MsgTypeHeartbeat)
 	if err != nil {
@@ -195,7 +192,7 @@ func (c *conn) onTraffic(gc gnet.Conn) gnet.Action {
 			break
 		}
 		data, msgType, _, err := c.c.proto.Decode(gc)
-		if err == io.ErrShortBuffer { // 表示数据不够了
+		if err == io.ErrShortBuffer {
 			break
 		}
 		if err != nil {
@@ -219,7 +216,7 @@ func (c *conn) onTraffic(gc gnet.Conn) gnet.Action {
 		if gc.InboundBuffered() > 1024*1024 {
 			c.Warn("client: inbound buffered is too large", zap.Int("buffered", gc.InboundBuffered()))
 		}
-		if err := gc.Wake(nil); err != nil { // 这里调用wake避免丢失剩余的数据
+		if err := gc.Wake(nil); err != nil {
 			c.Error("failed to wake up the connection", zap.Error(err))
 			return gnet.Close
 		}

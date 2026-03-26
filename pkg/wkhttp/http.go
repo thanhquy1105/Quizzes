@@ -41,12 +41,10 @@ func NewWithLogger(loggerHandler HandlerFunc) *WKHttp {
 	return l
 }
 
-// GetGinRoute GetGinRoute
 func (l *WKHttp) GetGinRoute() *gin.Engine {
 	return l.r
 }
 
-// Static Static
 func (l *WKHttp) Static(relativePath string, root string) {
 	l.r.Static(relativePath, root)
 }
@@ -54,7 +52,6 @@ func allocateContext() *Context {
 	return &Context{Context: nil}
 }
 
-// Use Use
 func (l *WKHttp) Use(handlers ...HandlerFunc) {
 	l.r.Use(l.handlersToGinHandleFuncs(handlers)...)
 }
@@ -75,7 +72,6 @@ func (c *Context) reset() {
 	c.Context = nil
 }
 
-// ResponseError ResponseError
 func (c *Context) ResponseError(err error) {
 	c.JSON(http.StatusBadRequest, gin.H{
 		"msg":    err.Error(),
@@ -90,14 +86,12 @@ func (c *Context) ResponseErrorWithStatus(status int, err error) {
 	})
 }
 
-// ResponseOK 返回正确
 func (c *Context) ResponseOK() {
 	c.JSON(http.StatusOK, gin.H{
 		"status": http.StatusOK,
 	})
 }
 
-// ResponseOKWithData 返回正确并并携带数据
 func (c *Context) ResponseOKWithData(data interface{}) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": http.StatusOK,
@@ -105,7 +99,6 @@ func (c *Context) ResponseOKWithData(data interface{}) {
 	})
 }
 
-// ResponseData 返回状态和数据
 func (c *Context) ResponseData(status int, data interface{}) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": status,
@@ -113,14 +106,12 @@ func (c *Context) ResponseData(status int, data interface{}) {
 	})
 }
 
-// ResponseStatus 返回状态
 func (c *Context) ResponseStatus(status int) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": status,
 	})
 }
 
-// ForwardWithBody 转发请求
 func (c *Context) ForwardWithBody(url string, body []byte) {
 	queryMap := map[string]string{}
 	values := c.Request.URL.Query()
@@ -141,19 +132,16 @@ func (c *Context) ForwardWithBody(url string, body []byte) {
 		return
 	}
 
-	// 必须先设置 Header，再调用 WriteHeader
 	c.Writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	c.Writer.WriteHeader(resp.StatusCode)
 	_, _ = c.Writer.Write([]byte(resp.Body))
 }
 
-// Forward 转发请求
 func (c *Context) Forward(url string) {
 	bodyBytes, _ := io.ReadAll(c.Request.Body)
 	c.ForwardWithBody(url, bodyBytes)
 }
 
-// CopyRequestHeader 复制request的header参数
 func (c *Context) CopyRequestHeader(request *http.Request) map[string]string {
 	headerMap := map[string]string{}
 	for key, values := range request.Header {
@@ -168,10 +156,8 @@ func (c *Context) Username() string {
 	return c.GetString("username")
 }
 
-// HandlerFunc HandlerFunc
 type HandlerFunc func(c *Context)
 
-// LMHttpHandler LMHttpHandler
 func (l *WKHttp) LMHttpHandler(handlerFunc HandlerFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hc := l.pool.Get().(*Context)
@@ -182,27 +168,22 @@ func (l *WKHttp) LMHttpHandler(handlerFunc HandlerFunc) gin.HandlerFunc {
 	}
 }
 
-// Run Run
 func (l *WKHttp) Run(addr ...string) error {
 	return l.r.Run(addr...)
 }
 
-// POST POST
 func (l *WKHttp) POST(relativePath string, handlers ...HandlerFunc) {
 	l.r.POST(relativePath, l.handlersToGinHandleFunc(handlers)...)
 }
 
-// GET GET
 func (l *WKHttp) GET(relativePath string, handlers ...HandlerFunc) {
 	l.r.GET(relativePath, l.handlersToGinHandleFunc(handlers)...)
 }
 
-// DELETE DELETE
 func (l *WKHttp) DELETE(relativePath string, handlers ...HandlerFunc) {
 	l.r.DELETE(relativePath, l.handlersToGinHandleFunc(handlers)...)
 }
 
-// Any Any
 func (l *WKHttp) Any(relativePath string, handlers ...HandlerFunc) {
 	l.r.Any(relativePath, l.handlersToGinHandleFunc(handlers)...)
 }
@@ -211,7 +192,6 @@ func (l *WKHttp) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	l.r.ServeHTTP(w, req)
 }
 
-// Group Group
 func (l *WKHttp) Group(relativePath string, handlers ...HandlerFunc) {
 	l.r.Group(relativePath, l.handlersToGinHandleFunc(handlers)...)
 }
@@ -224,7 +204,6 @@ func (l *WKHttp) handlersToGinHandleFunc(handlers []HandlerFunc) []gin.HandlerFu
 	return newHandlers
 }
 
-// CORSMiddleware 跨域
 func CORSMiddleware() HandlerFunc {
 
 	return func(c *Context) {

@@ -18,7 +18,7 @@ import (
 )
 
 type clientStats struct {
-	Requesting atomic.Int64 // 请求中的数量
+	Requesting atomic.Int64
 }
 type Client struct {
 	clientStats
@@ -29,7 +29,7 @@ type Client struct {
 	opts  *Options
 	event *clientEvent
 
-	reqIDGen atomic.Uint64 // 日志id生成
+	reqIDGen atomic.Uint64
 
 	conns []*conn
 
@@ -43,7 +43,7 @@ type Client struct {
 	pool  *ants.Pool
 	w     wait.Wait
 
-	batchRead int // 连接进来数据后，每次数据读取批数，超过此次数后下次再读
+	batchRead int
 }
 
 func New(addr string, opt ...Option) *Client {
@@ -75,7 +75,7 @@ func New(addr string, opt ...Option) *Client {
 	}
 
 	c.conns = make([]*conn, 1)
-	c.conns[0] = newConn(addr, c) // 目前只支持一个连接
+	c.conns[0] = newConn(addr, c)
 
 	gc, err := gnet.NewClient(c.event, gnet.WithTicker(true), gnet.WithMulticore(true))
 	if err != nil {
@@ -146,14 +146,13 @@ func (c *Client) Send(m *proto.Message) error {
 	return nil
 }
 
-// 批量发送
 func (c *Client) BatchSend(msgs []*proto.Message) error {
-	// 多条消息时，合并成批量消息发送
+
 	batchMsg := &proto.BatchMessage{
 		Messages: msgs,
 		Count:    uint32(len(msgs)),
 	}
-	// 编码批量消息
+
 	batchData, err := batchMsg.Encode()
 	if err != nil {
 		c.Error("Failed to encode batch message", zap.Error(err))
@@ -175,7 +174,6 @@ func (c *Client) BatchSend(msgs []*proto.Message) error {
 	return nil
 }
 
-// generateMessageId 生成消息ID
 func (c *Client) generateMessageId() uint64 {
 	return uint64(time.Now().UnixNano())
 }

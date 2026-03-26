@@ -5,10 +5,10 @@ import (
 )
 
 type metrics struct {
-	recvMsgCount atomic.Uint64 // 接受客户端发送的消息数量
-	recvMsgBytes atomic.Uint64 // 接受客户端发送的消息字节数
-	sendMsgCount atomic.Uint64 // 投递给客户端的消息数量
-	sendMsgBytes atomic.Uint64 // 投递给客户端的消息字节数
+	recvMsgCount atomic.Uint64
+	recvMsgBytes atomic.Uint64
+	sendMsgCount atomic.Uint64
+	sendMsgBytes atomic.Uint64
 }
 
 func newMetrics() *metrics {
@@ -48,10 +48,5 @@ func (m *metrics) sendMsgBytesSub(v uint64) {
 }
 
 func (m *metrics) printMetrics(prefix string) {
-	// recvMsgCount := m.recvMsgCount.Load()
-	// recvMsgBytes := m.recvMsgBytes.Load()
-	// sendMsgCount := m.sendMsgCount.Load()
-	// sendMsgBytes := m.sendMsgBytes.Load()
 
-	// fmt.Printf("[%s] recvMsgCount: %d, recvMsgBytes: %d, sendMsgCount: %d, sendMsgBytes: %d \n", prefix, recvMsgCount, recvMsgBytes, sendMsgCount, sendMsgBytes)
 }

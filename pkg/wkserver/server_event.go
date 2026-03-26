@@ -25,7 +25,7 @@ func (s *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	batchCount := 0
 	for i := 0; i < s.batchRead; i++ {
 		data, msgType, _, err := s.proto.Decode(c)
-		if err == io.ErrShortBuffer { // 表示数据不够了
+		if err == io.ErrShortBuffer {
 			if s.opts.LogDetailOn {
 				s.Info("err short buffer", zap.Error(err))
 			}
@@ -49,7 +49,7 @@ func (s *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
 		if c.InboundBuffered() > 1024*1024 {
 			s.Foucs("server: inbound buffered is too large", zap.Int("buffered", c.InboundBuffered()))
 		}
-		if err := c.Wake(nil); err != nil { // 这里调用wake避免丢失剩余的数据
+		if err := c.Wake(nil); err != nil {
 			s.Foucs("failed to wake up the connection, gnet close", zap.Error(err))
 			return gnet.Close
 		}
@@ -86,10 +86,9 @@ func (s *Server) handleMsg(conn Conn, msgType proto.MsgType, data []byte) {
 			s.Warn("request pool will full", zap.Int("running", s.requestPool.Running()), zap.Int("size", s.opts.RequestPoolSize))
 		}
 		err = s.requestPool.Submit(func() {
-			// handle request
+
 			s.handleRequest(conn, req)
 
-			// release request
 			s.releaseRequest(req)
 		})
 		if err != nil {
@@ -105,7 +104,6 @@ func (s *Server) handleMsg(conn Conn, msgType proto.MsgType, data []byte) {
 		}
 		s.handleResp(conn, resp)
 	} else if msgType == proto.MsgTypeMessage {
-		// 这需要复制一份新的data的byte，因为handleMsg传过来的data是被复用了的
 
 		msg := &proto.Message{}
 		err := msg.Unmarshal(data)
@@ -123,7 +121,7 @@ func (s *Server) handleMsg(conn Conn, msgType proto.MsgType, data []byte) {
 		}
 
 	} else if msgType == proto.MsgTypeBatchMessage {
-		// 处理批量消息
+
 		s.handleBatchMessage(conn, data)
 	} else {
 		s.Error("unknown msg type", zap.Uint8("msgType", msgType.Uint8()))
@@ -149,7 +147,7 @@ func (s *Server) handleHeartbeat(conn Conn) {
 
 func (s *Server) handleConnack(conn Conn, req *proto.Connect) {
 
-	s.Info("收到连接。。。", zap.String("from", req.Uid))
+	s.Info("", zap.String("from", req.Uid))
 	conn.SetContext(newConnContext(req.Uid))
 	s.connManager.AddConn(req.Uid, conn)
 
@@ -180,9 +178,8 @@ func (s *Server) handleMessage(conn Conn, msg *proto.Message) {
 	}
 }
 
-// handleBatchMessage 处理批量消息
 func (s *Server) handleBatchMessage(conn Conn, data []byte) {
-	// 解码批量消息
+
 	batchMsg := &proto.BatchMessage{}
 	err := batchMsg.Decode(data)
 	if err != nil {
@@ -196,24 +193,21 @@ func (s *Server) handleBatchMessage(conn Conn, data []byte) {
 			zap.Int("totalSize", len(data)))
 	}
 
-	// 更新统计信息（批量消息算作多个消息）
-	s.metrics.recvMsgCountAdd(uint64(batchMsg.Count - 1)) // -1 因为外层已经加了1
+	s.metrics.recvMsgCountAdd(uint64(batchMsg.Count - 1))
 
-	// 逐个处理批量消息中的每个消息
 	for i, msg := range batchMsg.Messages {
 		if msg == nil {
 			s.Warn("Null message in batch", zap.Int("index", i))
 			continue
 		}
 
-		// 根据消息类型分发处理
 		err := s.processSingleMessage(conn, msg)
 		if err != nil {
 			s.Error("Failed to process message from batch",
 				zap.Error(err),
 				zap.Int("index", i),
 				zap.Uint32("msgType", msg.MsgType))
-			// 继续处理下一个消息，不因为一个消息失败而中断整个批次
+
 		}
 	}
 
@@ -223,7 +217,6 @@ func (s *Server) handleBatchMessage(conn Conn, data []byte) {
 	}
 }
 
-// processSingleMessageFromBatch 处理批量消息中的单个消息
 func (s *Server) processSingleMessage(conn Conn, msg *proto.Message) error {
 	err := s.messagePool.Submit(func() {
 		s.handleMessage(conn, msg)
@@ -249,7 +242,6 @@ func (s *Server) handleRequest(conn Conn, req *proto.Request) {
 	ctx.proto = s.proto
 	handler(ctx)
 
-	// 这里判断日志等级才调用debug，避免 time.Since(start)这些无谓的消耗
 	if wklog.Level() == zapcore.DebugLevel {
 		cost := time.Since(start)
 		s.Debug("request path", zap.Uint64("id", req.Id), zap.String("path", req.Path), zap.Duration("cost", cost))

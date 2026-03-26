@@ -33,7 +33,7 @@ func CreateWSSConn(id int64, connFd NetFd, localAddr, remoteAddr net.Addr, eg *E
 type WSConn struct {
 	*DefaultConn
 	upgraded         bool
-	tmpInboundBuffer InboundBuffer // inboundBuffer InboundBuffer
+	tmpInboundBuffer InboundBuffer
 }
 
 func NewWSConn(d *DefaultConn) *WSConn {
@@ -84,7 +84,6 @@ func (w *WSConn) WriteServerText(data []byte) error {
 	return w.addWriteIfNotExist()
 }
 
-// 解包ws的数据
 func (w *WSConn) unpacketWSData() error {
 
 	if !w.upgraded {
@@ -127,27 +126,27 @@ func (w *WSConn) decode() ([]wsutil.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(buff) < ws.MinHeaderSize { // 数据不完整
-		w.Debug("数据不完整", zap.Int("len", len(buff)))
+	if len(buff) < ws.MinHeaderSize {
+		w.Debug("", zap.Int("len", len(buff)))
 		return nil, nil
 	}
 	tmpReader := bytes.NewReader(buff)
 	header, err := ws.ReadHeader(tmpReader)
 	if err != nil {
-		if err == io.EOF || err == io.ErrUnexpectedEOF { //数据不完整
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
 			return nil, nil
 		}
-		w.Debug("发送错误，丢弃数据", zap.Error(err))
-		w.DiscardFromTemp(len(buff)) // 发送错误，丢弃数据
+		w.Debug("", zap.Error(err))
+		w.DiscardFromTemp(len(buff))
 		return nil, err
 	}
 	dataLen := header.Length
-	if dataLen > int64(tmpReader.Len()) { // 数据不完整
-		w.Debug("数据不完整", zap.Int64("dataLen", dataLen), zap.Int64("tmpReader.Len()", int64(tmpReader.Len())))
+	if dataLen > int64(tmpReader.Len()) {
+		w.Debug("", zap.Int64("dataLen", dataLen), zap.Int64("tmpReader.Len()", int64(tmpReader.Len())))
 		return nil, nil
 	}
 
-	if header.Fin { // 当前 frame 已经是最后一个frame
+	if header.Fin {
 		var messages []wsutil.Message
 		tmpReader.Reset(buff)
 		remLen := tmpReader.Len()
@@ -179,20 +178,19 @@ func (w *WSConn) upgrade() error {
 		Writer: tmpWriter,
 	})
 	if err != nil {
-		if err == io.EOF || err == io.ErrUnexpectedEOF { //数据不完整
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
 			return nil
 		}
-		w.DiscardFromTemp(len(buff)) // 发送错误，丢弃数据
+		w.DiscardFromTemp(len(buff))
 		return err
 	}
 
-	// 解析http请求
 	req, err := w.parseHttpRequest(buff)
 	if err != nil {
 		return err
 	}
 
-	realIp := w.getRealIp(req) // 获取真实ip
+	realIp := w.getRealIp(req)
 	realPortStr := req.Header.Get("X-Real-Port")
 	if strings.TrimSpace(realIp) != "" {
 		realPort := 0
@@ -230,7 +228,6 @@ func (w *WSConn) getRealIp(r *http.Request) string {
 func (w *WSConn) parseHttpRequest(data []byte) (*http.Request, error) {
 	requestStr := string(data)
 
-	// 创建一个虚拟的Request对象
 	req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(requestStr)))
 	if err != nil {
 		fmt.Println("Error parsing request:", err)
@@ -277,13 +274,13 @@ type WSSConn struct {
 	*TLSConn
 	upgraded bool
 
-	wsTmpInboundBuffer InboundBuffer // inboundBuffer InboundBuffer
+	wsTmpInboundBuffer InboundBuffer
 }
 
 func NewWSSConn(tlsConn *TLSConn) *WSSConn {
 	return &WSSConn{
 		TLSConn:            tlsConn,
-		wsTmpInboundBuffer: tlsConn.d.eg.eventHandler.OnNewInboundConn(tlsConn.d, tlsConn.d.eg), // tls解码后的数据
+		wsTmpInboundBuffer: tlsConn.d.eg.eventHandler.OnNewInboundConn(tlsConn.d, tlsConn.d.eg),
 	}
 }
 
@@ -364,10 +361,10 @@ func (w *WSSConn) upgrade() error {
 		Writer: tmpWriter,
 	})
 	if err != nil {
-		if err == io.EOF || err == io.ErrUnexpectedEOF { //数据不完整
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
 			return nil
 		}
-		w.discardFromWSTemp(len(buff)) // 发送错误，丢弃数据
+		w.discardFromWSTemp(len(buff))
 		return err
 	}
 	_, err = w.TLSConn.Write(tmpWriter.Bytes())
@@ -382,7 +379,6 @@ func (w *WSSConn) upgrade() error {
 	return nil
 }
 
-// 解包ws的数据
 func (w *WSSConn) unpacketWSData() error {
 	if !w.upgraded {
 		err := w.upgrade()
@@ -442,26 +438,26 @@ func (w *WSSConn) decode() ([]wsutil.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(buff) < ws.MinHeaderSize { // 数据不完整
-		w.d.Debug("数据还没读完", zap.Int("len", len(buff)))
+	if len(buff) < ws.MinHeaderSize {
+		w.d.Debug("", zap.Int("len", len(buff)))
 		return nil, nil
 	}
 	tmpReader := bytes.NewReader(buff)
 	header, err := ws.ReadHeader(tmpReader)
 	if err != nil {
-		if err == io.EOF || err == io.ErrUnexpectedEOF { //数据不完整
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
 			return nil, nil
 		}
-		w.d.Debug("wss: 发送错误，丢弃数据", zap.Error(err))
-		w.discardFromWSTemp(len(buff)) // 发送错误，丢弃数据
+		w.d.Debug("wss: ", zap.Error(err))
+		w.discardFromWSTemp(len(buff))
 		return nil, err
 	}
 	dataLen := header.Length
-	if dataLen > int64(tmpReader.Len()) { // 数据不完整
-		w.d.Debug("wss: 数据还没读完....", zap.Int("dataLen", int(dataLen)), zap.Int("tmpReader.Len()", int(tmpReader.Len())))
+	if dataLen > int64(tmpReader.Len()) {
+		w.d.Debug("wss: ....", zap.Int("dataLen", int(dataLen)), zap.Int("tmpReader.Len()", int(tmpReader.Len())))
 		return nil, nil
 	}
-	if header.Fin { // 当前 frame 已经是最后一个frame
+	if header.Fin {
 
 		var messages []wsutil.Message
 		tmpReader.Reset(buff)

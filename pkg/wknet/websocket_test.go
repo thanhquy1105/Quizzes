@@ -23,7 +23,7 @@ func TestWebsocket(t *testing.T) {
 	defer e.Stop()
 
 	var wg sync.WaitGroup
-	wg.Add(1) // 1 for upgrade, 1 for data
+	wg.Add(1)
 	e.OnData(func(conn Conn) error {
 		data, err := conn.Peek(-1)
 		assert.NoError(t, err)
@@ -55,8 +55,8 @@ func TestBatchWSConn(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 200)
 
-	cliCount := 100 // 客户端数量
-	msgCount := 200 // 每个客户端发送的消息数量
+	cliCount := 100
+	msgCount := 200
 
 	finishChan := make(chan struct{})
 	e.OnData(func(conn Conn) error {
@@ -192,8 +192,8 @@ func TestBatchWSSConn(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 200)
 
-	cliCount := 100 // 客户端数量
-	msgCount := 200 // 每个客户端发送的消息数量
+	cliCount := 100
+	msgCount := 200
 
 	finishChan := make(chan struct{})
 	e.OnData(func(conn Conn) error {

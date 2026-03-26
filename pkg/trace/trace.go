@@ -25,7 +25,6 @@ type Trace struct {
 	ctx      context.Context
 	shutdown func(context.Context) error
 
-	// Metrics 监控
 	Metrics IMetrics
 	wklog.Log
 }

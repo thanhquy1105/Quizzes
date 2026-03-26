@@ -12,9 +12,9 @@ import (
 )
 
 type Participant struct {
-	UID   string `json:"uid"`
-	Name  string `json:"name"`
-	Score int    `json:"score"`
+	UID   string        `json:"uid"`
+	Name  string        `json:"name"`
+	Score int           `json:"score"`
 	Conn  wkserver.Conn `json:"-"`
 }
 
@@ -85,7 +85,7 @@ func (s *Session) BroadcastLeaderboard() {
 
 	for _, p := range s.Participants {
 		if p.Conn != nil {
-			// Using MsgTypeMessage for leaderboard push
+
 			msg := &proto.Message{
 				MsgType:   uint32(proto.MsgTypeMessage),
 				Timestamp: uint64(time.Now().UnixMilli()),

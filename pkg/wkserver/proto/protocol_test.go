@@ -90,7 +90,7 @@ func TestDefaultProto_DecodeInvalidMagicNumber(t *testing.T) {
 	encoded, err := proto.Encode(data, msgType)
 	assert.NoError(t, err)
 
-	encoded[0] = 'X' // Corrupt the magic number
+	encoded[0] = 'X'
 
 	conn := &mockConn{buffer: encoded}
 	_, _, _, err = proto.Decode(conn)
@@ -113,15 +113,13 @@ func TestDefaultProto_DecodePartialData(t *testing.T) {
 	encoded, err := proto.Encode(data, msgType)
 	assert.NoError(t, err)
 
-	// Split the encoded data into two parts
 	part1 := encoded[:len(encoded)/2]
 	part2 := encoded[len(encoded)/2:]
 
 	conn := &mockConn{buffer: part1}
 	_, _, _, err = proto.Decode(conn)
-	assert.Equal(t, io.ErrShortBuffer, err) // Expect an error due to incomplete data
+	assert.Equal(t, io.ErrShortBuffer, err)
 
-	// Append the second part of the data
 	conn.buffer = append(conn.buffer, part2...)
 	decodedData, decodedMsgType, msgLen, err := proto.Decode(conn)
 	assert.NoError(t, err)
@@ -144,19 +142,16 @@ func TestDefaultProto_DecodeMixedHeartbeatAndMessage(t *testing.T) {
 	encodedHeartbeat, err := proto.Encode([]byte{byte(heartbeatType)}, heartbeatType)
 	assert.NoError(t, err)
 
-	// Combine encoded message and heartbeat
 	combined := append(encodedMsg, encodedHeartbeat...)
 
 	conn := &mockConn{buffer: combined}
 
-	// Decode message
 	decodedData, decodedMsgType, msgLen, err := proto.Decode(conn)
 	assert.NoError(t, err)
 	assert.Equal(t, msgData, decodedData)
 	assert.Equal(t, msgType, decodedMsgType)
 	assert.Equal(t, len(encodedMsg), msgLen)
 
-	// Decode heartbeat
 	decodedData, decodedMsgType, msgLen, err = proto.Decode(conn)
 	assert.NoError(t, err)
 	assert.Equal(t, []byte{heartbeatType.Uint8()}, decodedData)

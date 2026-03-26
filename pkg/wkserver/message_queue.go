@@ -21,36 +21,18 @@ func (m *message) size() int {
 
 type messageQueue struct {
 	ch            chan struct{}
-	rl            *RateLimiter // 限制字节流量速度
-	lazyFreeCycle uint64       // 懒惰释放周期，n表示n次释放一次
+	rl            *RateLimiter
+	lazyFreeCycle uint64
 	size          uint64
-	left          []*message // 左边队列
-	right         []*message // 右边队列, 左右的目的是为了重复利用内存
-	nodrop        []*message // 不能drop的消息
+	left          []*message
+	right         []*message
+	nodrop        []*message
 	mu            sync.Mutex
-	leftInWrite   bool   // 写入时是否使用左边队列
-	idx           uint64 // 当前写入的位置下标
+	leftInWrite   bool
+	idx           uint64
 	oldIdx        uint64
 	cycle         uint64
 	wklog.Log
-}
-
-func newMessageQueue(size uint64, ch bool,
-	lazyFreeCycle uint64, maxMemorySize uint64) *messageQueue {
-
-	q := &messageQueue{
-		rl:            NewRateLimiter(maxMemorySize),
-		size:          size,
-		lazyFreeCycle: lazyFreeCycle,
-		left:          make([]*message, size),
-		right:         make([]*message, size),
-		nodrop:        make([]*message, 0),
-		Log:           wklog.NewWKLog("messageQueue"),
-	}
-	if ch {
-		q.ch = make(chan struct{}, 1)
-	}
-	return q
 }
 
 func (q *messageQueue) add(msg *message) bool {
@@ -71,7 +53,6 @@ func (q *messageQueue) add(msg *message) bool {
 
 }
 
-// 必须要添加的消息不接受drop
 func (q *messageQueue) mustAdd(msg *message) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -150,7 +131,6 @@ func (q *messageQueue) notify() {
 	}
 }
 
-// Ch returns the notification channel.
 func (q *messageQueue) notifyCh() <-chan struct{} {
 	return q.ch
 }

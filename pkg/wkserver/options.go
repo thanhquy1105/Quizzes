@@ -9,24 +9,23 @@ import (
 
 type Options struct {
 	Addr            string
-	WSAddr          string // websocket listening address
-	WSSAddr         string // websocket secure listening address
+	WSAddr          string
+	WSSAddr         string
 	WSTLSConfig     *tls.Config
-	RequestPoolSize int // The size of the request pool, the default is 10000
-	MessagePoolSize int  // The size of the message pool, the default is 10000
-	MessagePoolOn   bool // Whether to open the message pool, the default is true
+	RequestPoolSize int
+	MessagePoolSize int
+	MessagePoolOn   bool
 	ConnPath        string
 	ClosePath       string
 	RequestTimeout  time.Duration
 	OnMessage       func(conn Conn, msg *proto.Message)
 	MaxIdle         time.Duration
 
-	TimingWheelTick time.Duration // The time-round training interval must be 1ms or more
-	TimingWheelSize int64         // Time wheel size
+	TimingWheelTick time.Duration
+	TimingWheelSize int64
 	OnRequest       func(conn Conn, req *proto.Request)
 	OnResponse      func(conn Conn, resp *proto.Response)
-	LogDetailOn     bool // 是否开启详细日志
-
+	LogDetailOn     bool
 }
 
 func NewOptions() *Options {

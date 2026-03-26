@@ -7,11 +7,11 @@ type Options struct {
 	Uid   string
 	Token string
 
-	HeartbeatTick        int // 心跳间隔tick数
-	HeartbeatTimeoutTick int // 心跳超时tick数
+	HeartbeatTick        int
+	HeartbeatTimeoutTick int
 	OnMessage            func(msg *proto.Message)
 
-	LogDetailOn bool // 是否开启详细日志
+	LogDetailOn bool
 }
 
 func NewOptions(opt ...Option) *Options {

@@ -1,7 +1,3 @@
-// Copyright 2023 tangtao. All rights reserved.
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file.
-
 //go:build (freebsd || dragonfly || darwin) && !poll_opt
 // +build freebsd dragonfly darwin
 // +build !poll_opt
@@ -27,7 +23,6 @@ type Poller struct {
 	name     string
 }
 
-// NewPoller instantiates a poller.
 func NewPoller(index int, name string) *Poller {
 	poller := new(Poller)
 	poller.name = name
@@ -48,11 +43,10 @@ func NewPoller(index int, name string) *Poller {
 	return poller
 }
 
-// Polling blocks the current goroutine, waiting for network-events.
 func (p *Poller) Polling(callback func(fd int, event PollEvent) error) error {
 	el := newEventList(InitPollEventsCap)
 	var (
-		ts  unix.Timespec // 超时
+		ts  unix.Timespec
 		tsp *unix.Timespec
 	)
 	p.shutdown.Store(false)
@@ -80,7 +74,6 @@ func (p *Poller) Polling(callback func(fd int, event PollEvent) error) error {
 				triggerWrite = evt.Filter&syscall.EVFILT_WRITE == syscall.EVFILT_WRITE
 				triggerHup = evt.Flags&syscall.EV_EOF != 0
 
-				// p.Debug("poll....", zap.Int("fd", fd), zap.Bool("read", triggerRead), zap.Bool("write", triggerWrite), zap.Bool("hup", triggerHup))
 				if evt.Flags&syscall.EV_DELETE > 0 {
 					continue
 				}
@@ -120,9 +113,8 @@ func (p *Poller) Polling(callback func(fd int, event PollEvent) error) error {
 	return nil
 }
 
-// AddRead registers the given file-descriptor with readable event to the poller.
 func (p *Poller) AddRead(fd int) error {
-	// fmt.Println("AddRead---->", fd)
+
 	if fd == 0 {
 		return nil
 	}
@@ -133,7 +125,7 @@ func (p *Poller) AddRead(fd int) error {
 }
 
 func (p *Poller) AddWrite(fd int) error {
-	// fmt.Println("AddWrite---->", fd)
+
 	if fd == 0 {
 		return nil
 	}
@@ -143,7 +135,6 @@ func (p *Poller) AddWrite(fd int) error {
 	return os.NewSyscallError("kevent add", err)
 }
 
-// DeleteRead deletes the given file-descriptor from the poller.
 func (p *Poller) DeleteRead(fd int) error {
 	if fd == 0 {
 		return nil
@@ -154,7 +145,6 @@ func (p *Poller) DeleteRead(fd int) error {
 	return os.NewSyscallError("kevent delete", err)
 }
 
-// DeleteWrite deletes the given file-descriptor from the poller.
 func (p *Poller) DeleteWrite(fd int) error {
 	if fd == 0 {
 		return nil
@@ -187,7 +177,6 @@ func (p *Poller) Close() error {
 	return nil
 }
 
-// close closes the poller.
 func (p *Poller) close() error {
 	return os.NewSyscallError("close", unix.Close(p.fd))
 }

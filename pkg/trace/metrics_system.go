@@ -47,42 +47,34 @@ func newSystemMetrics(opts *Options) *systemMetrics {
 	return s
 }
 
-// IntranetIncomingAdd 内网入口流量
 func (s *systemMetrics) IntranetIncomingAdd(v int64) {
 	s.intranetIncomingBytes.Add(v)
 }
 
-// IntranetOutgoingAdd 内网出口流量
 func (s *systemMetrics) IntranetOutgoingAdd(v int64) {
 	s.intranetOutgoingBytes.Add(v)
 }
 
-// ExtranetIncomingAdd 外网入口流量
 func (s *systemMetrics) ExtranetIncomingAdd(v int64) {
 	s.extranetIncomingBytes.Add(v)
 }
 
-// ExtranetOutgoingAdd 外网出口流量
 func (s *systemMetrics) ExtranetOutgoingAdd(v int64) {
 	s.extranetOutgoingBytes.Add(v)
 }
 
-// CPUUsageAdd CPU使用率
 func (s *systemMetrics) CPUUsageAdd(v float64) {
 
 }
 
-// MemoryUsageAdd 内存使用率
 func (s *systemMetrics) MemoryUsageAdd(v float64) {
 
 }
 
-// DiskIOReadCountAdd 磁盘读取次数
 func (s *systemMetrics) DiskIOReadCountAdd(v int64) {
 
 }
 
-// DiskIOWriteCountAdd 磁盘写入次数
 func (s *systemMetrics) DiskIOWriteCountAdd(v int64) {
 
 }

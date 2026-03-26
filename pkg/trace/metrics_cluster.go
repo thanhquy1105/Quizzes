@@ -13,7 +13,7 @@ type clusterMetrics struct {
 	wklog.Log
 	ctx  context.Context
 	opts *Options
-	// message
+
 	messageIncomingBytes atomic.Int64
 	messageOutgoingBytes atomic.Int64
 	messageIncomingCount atomic.Int64
@@ -26,22 +26,18 @@ type clusterMetrics struct {
 
 	messageConcurrency atomic.Int64
 
-	// sendPacket
 	sendPacketIncomingBytes atomic.Int64
 	sendPacketIncomingCount atomic.Int64
 	sendPacketOutgoingBytes atomic.Int64
 	sendPacketOutgoingCount atomic.Int64
 
-	// channel
 	channelActiveCount metric.Int64UpDownCounter
 
-	// channel log
 	channelLogIncomingBytes atomic.Int64
 	channelLogIncomingCount atomic.Int64
 	channelLogOutgoingBytes atomic.Int64
 	channelLogOutgoingCount atomic.Int64
 
-	// msg sync
 	msgSyncIncomingBytes        atomic.Int64
 	msgSyncOutgoingBytes        atomic.Int64
 	msgSyncIncomingCount        atomic.Int64
@@ -59,38 +55,32 @@ type clusterMetrics struct {
 	slotMsgSyncIncomingBytes    atomic.Int64
 	slotMsgSyncOutgoingBytes    atomic.Int64
 
-	// cluster ping
 	clusterPingIncomingBytes atomic.Int64
 	clusterPingIncomingCount atomic.Int64
 	clusterPingOutgoingBytes atomic.Int64
 	clusterPingOutgoingCount atomic.Int64
 
-	// cluster pong
 	clusterPongIncomingBytes atomic.Int64
 	clusterPongIncomingCount atomic.Int64
 	clusterPongOutgoingBytes atomic.Int64
 	clusterPongOutgoingCount atomic.Int64
 
-	// inbound flight
 	inboundFlightMessageCount metric.Int64UpDownCounter
 	inboundFlightMessageBytes metric.Int64UpDownCounter
 
-	// outbound flight
 	outboundFlightMessageCount metric.Int64UpDownCounter
 	outboundFlightMessageBytes metric.Int64UpDownCounter
 
-	// propose
 	channelProposeLatency           metric.Int64Histogram
-	channelProposeCount             atomic.Int64 // 频道提案数量
-	channelProposeFailedCount       atomic.Int64 // 频道提案失败数量
-	channelProposeLatencyUnder500ms atomic.Int64 // 小于500ms的频道提案
-	channelProposeLatencyOver500ms  atomic.Int64 // 超过500ms的频道提案
+	channelProposeCount             atomic.Int64
+	channelProposeFailedCount       atomic.Int64
+	channelProposeLatencyUnder500ms atomic.Int64
+	channelProposeLatencyOver500ms  atomic.Int64
 
 	slotProposeLatency metric.Int64Histogram
 
-	// node
-	observerNodeRequesting func() int64 // 节点请求中的数量
-	observerNodeSending    func() int64 // 节点发送中的数量
+	observerNodeRequesting func() int64
+	observerNodeSending    func() int64
 }
 
 func newClusterMetrics(opts *Options) IClusterMetrics {
@@ -100,13 +90,11 @@ func newClusterMetrics(opts *Options) IClusterMetrics {
 		opts: opts,
 	}
 
-	// message
 	msgIncomingBytes := NewInt64ObservableCounter("cluster_msg_incoming_bytes")
 	msgOutgoingBytes := NewInt64ObservableCounter("cluster_msg_outgoing_bytes")
 	msgIncomingCount := NewInt64ObservableCounter("cluster_msg_incoming_count")
 	msgOutgoingCount := NewInt64ObservableCounter("cluster_msg_outgoing_count")
 
-	// channel message
 	channelMsgIncomingBytes := NewInt64ObservableCounter("cluster_channel_msg_incoming_bytes")
 	channelMsgOutgoingBytes := NewInt64ObservableCounter("cluster_channel_msg_outgoing_bytes")
 	channelMsgIncomingCount := NewInt64ObservableCounter("cluster_channel_msg_incoming_count")
@@ -127,7 +115,6 @@ func newClusterMetrics(opts *Options) IClusterMetrics {
 		return nil
 	}, msgIncomingBytes, msgOutgoingBytes, msgIncomingCount, msgOutgoingCount, messageConcurrency, channelMsgIncomingBytes, channelMsgOutgoingBytes, channelMsgIncomingCount, channelMsgOutgoingCount)
 
-	// sendpacket
 	sendPacketIncomingBytes := NewInt64ObservableCounter("cluster_sendpacket_incoming_bytes")
 	sendPacketIncomingCount := NewInt64ObservableCounter("cluster_sendpacket_incoming_count")
 	sendPacketOutgoingBytes := NewInt64ObservableCounter("cluster_sendpacket_outgoing_bytes")
@@ -139,7 +126,7 @@ func newClusterMetrics(opts *Options) IClusterMetrics {
 		obs.ObserveInt64(sendPacketOutgoingCount, c.sendPacketOutgoingCount.Load())
 		return nil
 	}, sendPacketIncomingBytes, sendPacketIncomingCount, sendPacketOutgoingBytes, sendPacketOutgoingCount)
-	// channel log
+
 	channelLogIncomingBytes := NewInt64ObservableCounter("cluster_channel_log_incoming_bytes")
 	channelLogIncomingCount := NewInt64ObservableCounter("cluster_channel_log_incoming_count")
 	channelLogOutgoingBytes := NewInt64ObservableCounter("cluster_channel_log_outgoing_bytes")
@@ -154,7 +141,6 @@ func newClusterMetrics(opts *Options) IClusterMetrics {
 		return nil
 	}, channelLogIncomingBytes, channelLogIncomingCount, channelLogOutgoingBytes, channelLogOutgoingCount)
 
-	// msg sync
 	msgSyncIncomingBytes := NewInt64ObservableCounter("cluster_msg_sync_incoming_bytes")
 	msgSyncOutgoingBytes := NewInt64ObservableCounter("cluster_msg_sync_outgoing_bytes")
 	msgSyncIncomingCount := NewInt64ObservableCounter("cluster_msg_sync_incoming_count")
@@ -192,7 +178,6 @@ func newClusterMetrics(opts *Options) IClusterMetrics {
 		return nil
 	}, msgSyncIncomingBytes, msgSyncOutgoingBytes, msgSyncIncomingCount, msgSyncOutgoingCount, msgSyncRespIncomingBytes, msgSyncRespOutgoingBytes, msgSyncRespIncomingCount, msgSyncRespOutgoingCount, channelMsgSyncIncomingBytes, channelMsgSyncOutgoingBytes, channelMsgSyncIncomingCount, channelMsgSyncOutgoingCount, slotMsgSyncIncomingBytes, slotMsgSyncOutgoingBytes, slotMsgSyncIncomingCount, slotMsgSyncOutgoingCount)
 
-	// cluster ping
 	clusterPingIncomingBytes := NewInt64ObservableCounter("cluster_msg_ping_incoming_bytes")
 	clusterPingIncomingCount := NewInt64ObservableCounter("cluster_msg_ping_incoming_count")
 	clusterPingOutgoingBytes := NewInt64ObservableCounter("cluster_msg_ping_outgoing_bytes")
@@ -206,7 +191,6 @@ func newClusterMetrics(opts *Options) IClusterMetrics {
 		return nil
 	}, clusterPingIncomingBytes, clusterPingIncomingCount, clusterPingOutgoingBytes, clusterPingOutgoingCount)
 
-	// cluster pong
 	clusterPongIncomingBytes := NewInt64ObservableCounter("cluster_msg_pong_incoming_bytes")
 	clusterPongIncomingCount := NewInt64ObservableCounter("cluster_msg_pong_incoming_count")
 	clusterPongOutgoingBytes := NewInt64ObservableCounter("cluster_msg_pong_outgoing_bytes")
@@ -222,7 +206,7 @@ func newClusterMetrics(opts *Options) IClusterMetrics {
 	}, clusterPongIncomingBytes, clusterPongIncomingCount, clusterPongOutgoingBytes, clusterPongOutgoingCount)
 
 	var err error
-	// propose
+
 	c.channelProposeLatency, err = meter.Int64Histogram(
 		"cluster_channel_propose_latency",
 	)
@@ -248,7 +232,6 @@ func newClusterMetrics(opts *Options) IClusterMetrics {
 		return nil
 	}, channelProposeCount, channelProposeFailedCount, channelProposeLatencyUnder500ms, channelProposeLatencyOver500ms)
 
-	// node
 	nodeRequestingCount := NewInt64ObservableCounter("cluster_node_requesting_count")
 	nodeSendingCount := NewInt64ObservableCounter("cluster_node_sending_count")
 	RegisterCallback(func(ctx context.Context, obs metric.Observer) error {

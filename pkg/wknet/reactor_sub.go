@@ -15,20 +15,18 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// ReactorSub is a sub reactor.
 type ReactorSub struct {
 	poller    *netpoll.Poller
 	eg        *Engine
-	idx       int // index of the current sub reactor
+	idx       int
 	connCount atomic.Int32
 	wklog.Log
 	ReadBuffer []byte
-	cache      bytes.Buffer // temporary buffer for scattered bytes
+	cache      bytes.Buffer
 
 	stopped atomic.Bool
 }
 
-// NewReactorSub instantiates a sub reactor.
 func NewReactorSub(eg *Engine, index int) *ReactorSub {
 	poller := netpoll.NewPoller(index, "connPoller")
 
@@ -41,20 +39,17 @@ func NewReactorSub(eg *Engine, index int) *ReactorSub {
 	}
 }
 
-// AddConn adds a connection to the sub reactor.
 func (r *ReactorSub) AddConn(conn Conn) error {
 	r.eg.AddConn(conn)
 	r.connCount.Inc()
 	return r.poller.AddRead(conn.Fd().fd)
 }
 
-// Start starts the sub reactor.
 func (r *ReactorSub) Start() error {
 	go r.run()
 	return nil
 }
 
-// Stop stops the sub reactor.
 func (r *ReactorSub) Stop() error {
 	r.stopped.Store(true)
 	return r.poller.Close()
@@ -105,7 +100,7 @@ func (r *ReactorSub) run() {
 		}
 		switch event {
 		case netpoll.PollEventClose:
-			r.Debug("conn 连接关闭！", zap.Int64("id", conn.ID()), zap.Int("fd", fd))
+			r.Debug("conn ", zap.Int64("id", conn.ID()), zap.Int("fd", fd))
 			_ = r.CloseConn(conn, unix.ECONNRESET)
 		case netpoll.PollEventRead:
 			err = r.read(conn)

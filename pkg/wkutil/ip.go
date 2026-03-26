@@ -9,7 +9,6 @@ import (
 	"strings"
 )
 
-// GetExternalIP 获取本服务器的外网IP
 func GetExternalIP() (string, error) {
 	resp, err := http.Get("https://ifconfig.io/ip")
 	if err != nil {
@@ -33,7 +32,6 @@ func GetExternalIP() (string, error) {
 	return strings.TrimSpace(string(resultBytes)), nil
 }
 
-// GetIntranetIP 获取本机IP
 func GetIntranetIP() (ips []string, err error) {
 	ips = make([]string, 0)
 
@@ -44,14 +42,13 @@ func GetIntranetIP() (ips []string, err error) {
 
 	for _, iface := range ifaces {
 		if iface.Flags&net.FlagUp == 0 {
-			continue // interface down
+			continue
 		}
 
 		if iface.Flags&net.FlagLoopback != 0 {
-			continue // loopback interface
+			continue
 		}
 
-		// ignore docker and warden bridge
 		if strings.HasPrefix(iface.Name, "docker") || strings.HasPrefix(iface.Name, "w-") {
 			continue
 		}
@@ -76,7 +73,7 @@ func GetIntranetIP() (ips []string, err error) {
 
 			ip = ip.To4()
 			if ip == nil {
-				continue // not an ipv4 address
+				continue
 			}
 
 			ipStr := ip.String()
@@ -89,14 +86,13 @@ func GetIntranetIP() (ips []string, err error) {
 	return ips, nil
 }
 
-// IsIntranet IsIntranet
 func IsIntranet(ipStr string) bool {
 	if strings.HasPrefix(ipStr, "10.") || strings.HasPrefix(ipStr, "192.168.") {
 		return true
 	}
 
 	if strings.HasPrefix(ipStr, "172.") {
-		// 172.16.0.0-172.31.255.255
+
 		arr := strings.Split(ipStr, ".")
 		if len(arr) != 4 {
 			return false

@@ -1,6 +1,5 @@
 package wkutil
 
-// ArrayContains ArrayContains
 func ArrayContains(items []string, target string) bool {
 
 	for _, element := range items {

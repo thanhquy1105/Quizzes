@@ -7,13 +7,11 @@ import (
 	"strings"
 )
 
-// SlotBitMap SlotBitMap
 type SlotBitMap struct {
 	bits    []byte
 	slotNum uint32
 }
 
-// NewSlotBitMap NewSlotBitMap
 func NewSlotBitMap(slotNum uint32) *SlotBitMap {
 	var bits []byte
 	if slotNum%8 == 0 {
@@ -24,13 +22,11 @@ func NewSlotBitMap(slotNum uint32) *SlotBitMap {
 	return &SlotBitMap{bits: bits, slotNum: slotNum}
 }
 
-// NewSlotBitMapWithBits NewSlotBitMapWithBits
 func NewSlotBitMapWithBits(bits []byte) *SlotBitMap {
 
 	return &SlotBitMap{bits: bits}
 }
 
-// SetSlot SetSlot
 func (s *SlotBitMap) SetSlot(num uint32, v bool) {
 	index := num / 8
 	pos := num % 8
@@ -41,21 +37,18 @@ func (s *SlotBitMap) SetSlot(num uint32, v bool) {
 	}
 }
 
-// SetSlotForRange SetSlotForRange  [start,end]
 func (s *SlotBitMap) SetSlotForRange(start, end uint32, v bool) {
 	for i := start; i <= end; i++ {
 		s.SetSlot(i, v)
 	}
 }
 
-// GetSlot GetSlot
 func (s *SlotBitMap) GetSlot(num uint32) bool {
 	index := num / 8
 	pos := num % 8
 	return s.bits[index]&(1<<pos) != 0
 }
 
-// Reset Reset
 func (s *SlotBitMap) Reset() {
 	var bits []byte
 	if s.slotNum%8 == 0 {
@@ -66,12 +59,10 @@ func (s *SlotBitMap) Reset() {
 	s.bits = bits
 }
 
-// GetBits GetBits
 func (s *SlotBitMap) GetBits() []byte {
 	return s.bits
 }
 
-// GetVaildSlotNum GetVaildSlotNum
 func (s *SlotBitMap) GetVaildSlotNum() int {
 	var count = 0
 	for i := 0; i < len(s.bits); i++ {
@@ -86,7 +77,6 @@ func (s *SlotBitMap) GetVaildSlotNum() int {
 	return count
 }
 
-// GetVaildSlots GetVaildSlots
 func (s *SlotBitMap) GetVaildSlots() []uint32 {
 	var slots = make([]uint32, 0)
 	for i := 0; i < len(s.bits); i++ {
@@ -101,7 +91,6 @@ func (s *SlotBitMap) GetVaildSlots() []uint32 {
 	return slots
 }
 
-// ExportSlots ExportSlots
 func (s *SlotBitMap) ExportSlots(num int) []byte {
 	exportBits := make([]byte, len(s.bits))
 	exportNum := num
@@ -128,7 +117,6 @@ func (s *SlotBitMap) ExportSlots(num int) []byte {
 	return exportBits
 }
 
-// CleanSlots CleanSlots
 func (s *SlotBitMap) CleanSlots(slots []byte) {
 	if len(slots) == 0 {
 		return
@@ -143,7 +131,6 @@ func (s *SlotBitMap) CleanSlots(slots []byte) {
 	}
 }
 
-// MergeSlots MergeSlots
 func (s *SlotBitMap) MergeSlots(bs ...[]byte) {
 	if len(bs) == 0 {
 		return
@@ -163,7 +150,6 @@ func (s *SlotBitMap) MergeSlots(bs ...[]byte) {
 
 }
 
-// FormatSlots FormatSlots
 func (s *SlotBitMap) FormatSlots() string {
 	slots := s.GetVaildSlots()
 	if len(slots) == 0 {
@@ -212,7 +198,6 @@ func NewSlotBitMapFromFormat(formatStr string, slotCount uint32) *SlotBitMap {
 	return slots
 }
 
-// SlotsContains SlotsContains
 func SlotsContains(b, subslice []byte) bool {
 	if len(b) < len(subslice) {
 		return false
@@ -233,13 +218,11 @@ func SlotsContains(b, subslice []byte) bool {
 	return true
 }
 
-// GetSlotNum GetSlotNum
 func GetSlotNum(slotCount int, v string) uint32 {
 	value := crc32.ChecksumIEEE([]byte(v))
 	return value % uint32(slotCount)
 }
 
-// GetSlotFillFormat  获取slot填充格式
 func GetSlotFillFormat(slot int, slotCount int) string {
 
 	if slotCount < 100 {

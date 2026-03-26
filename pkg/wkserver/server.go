@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/lni/goutils/syncutil"
 	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet/v2"
-	"github.com/panjf2000/gnet/v2/pkg/errors"
 	"go.etcd.io/etcd/pkg/v3/wait"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
@@ -44,7 +42,7 @@ type Server struct {
 
 	requestObjPool *sync.Pool
 	stopper        *syncutil.Stopper
-	batchRead      int // 连接进来数据后，每次数据读取批数，超过此次数后下次再读
+	batchRead      int
 
 	wsEngine *wknet.Engine
 	ready    chan struct{}
@@ -175,7 +173,6 @@ func (s *Server) Stop() {
 	}
 }
 
-// Schedule 延迟任务
 func (s *Server) Schedule(interval time.Duration, f func()) *timingwheel.Timer {
 	return s.timingWheel.ScheduleFunc(&everyScheduler{
 		Interval: interval,
@@ -205,7 +202,7 @@ func (s *Server) MessagePoolRunning() int {
 }
 
 func (s *Server) onWSConnect(conn wknet.Conn) error {
-	conn.SetMaxIdle(time.Second * 120) // websocket check timeout
+	conn.SetMaxIdle(time.Second * 120)
 	return nil
 }
 
@@ -341,22 +338,4 @@ type everyScheduler struct {
 
 func (s *everyScheduler) Next(prev time.Time) time.Time {
 	return prev.Add(s.Interval)
-}
-
-func ParseProtoAddr(protoAddr string) (string, string, error) {
-	protoAddr = strings.ToLower(protoAddr)
-	if strings.Count(protoAddr, "://") != 1 {
-		return "", "", errors.ErrInvalidNetworkAddress
-	}
-	pair := strings.SplitN(protoAddr, "://", 2)
-	proto, addr := pair[0], pair[1]
-	switch proto {
-	case "tcp", "tcp4", "tcp6", "udp", "udp4", "udp6", "unix":
-	default:
-		return "", "", errors.ErrUnsupportedProtocol
-	}
-	if addr == "" {
-		return "", "", errors.ErrInvalidNetworkAddress
-	}
-	return proto, addr, nil
 }

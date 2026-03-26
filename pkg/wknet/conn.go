@@ -10,8 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/RussellLuo/timingwheel"
 	"btaskee-quiz/pkg/ring"
+
+	"github.com/RussellLuo/timingwheel"
 	"github.com/WuKongIM/crypto/tls"
 	"github.com/sasha-s/go-deadlock"
 
@@ -22,14 +23,14 @@ import (
 )
 
 type ConnStats struct {
-	InMsgs         atomic.Int64 // 收到客户端消息数量
-	OutMsgs        atomic.Int64 // 下发消息数量
-	InMsgBytes     atomic.Int64 // 收到消息字节数
-	OutMsgBytes    atomic.Int64 // 下发消息字节数
-	InPackets      atomic.Int64 // 收到包数量
-	OutPackets     atomic.Int64 // 下发包数量
-	InPacketBytes  atomic.Int64 // 收到包字节数
-	OutPacketBytes atomic.Int64 // 下发包字节数
+	InMsgs         atomic.Int64
+	OutMsgs        atomic.Int64
+	InMsgBytes     atomic.Int64
+	OutMsgBytes    atomic.Int64
+	InPackets      atomic.Int64
+	OutPackets     atomic.Int64
+	InPacketBytes  atomic.Int64
+	OutPacketBytes atomic.Int64
 }
 
 func NewConnStats() *ConnStats {
@@ -38,71 +39,59 @@ func NewConnStats() *ConnStats {
 }
 
 type Conn interface {
-	// ID returns the connection id.
 	ID() int64
-	// SetID sets the connection id.
+
 	SetID(id int64)
-	// UID returns the user uid.
+
 	UID() string
-	// SetUID sets the user uid.
+
 	SetUID(uid string)
-	// DeviceLevel() uint8
-	// SetDeviceLevel(deviceLevel uint8)
-	// DeviceFlag returns the device flag.
-	// DeviceFlag() uint8
-	// SetDeviceFlag sets the device flag.
-	// SetDeviceFlag(deviceFlag uint8)
-	// DeviceID returns the device id.
-	// DeviceID() string
-	// SetValue sets the value associated with key to value.
+
 	SetValue(key string, value interface{})
-	// Value returns the value associated with key.
+
 	Value(key string) interface{}
-	// SetDeviceID sets the device id.
-	// SetDeviceID(deviceID string)
-	// Flush flushes the data to the connection.
+
 	Flush() error
-	// Read reads the data from the connection.
+
 	Read(buf []byte) (int, error)
-	// Peek peeks the data from the connection.
+
 	Peek(n int) ([]byte, error)
-	// Discard discards the data from the connection.
+
 	Discard(n int) (int, error)
-	// Write writes the data to the connection. TODO: Locking is required when calling write externally
+
 	Write(b []byte) (int, error)
-	// WriteToOutboundBuffer writes the data to the outbound buffer.  Thread safety
+
 	WriteToOutboundBuffer(b []byte) (int, error)
-	// Wake wakes up the connection write.
+
 	WakeWrite() error
-	// Fd returns the file descriptor of the connection.
+
 	Fd() NetFd
-	// IsClosed returns true if the connection is closed.
+
 	IsClosed() bool
-	// Close closes the connection.
+
 	Close() error
 	CloseWithErr(err error) error
-	// RemoteAddr returns the remote network address.
+
 	RemoteAddr() net.Addr
-	// SetRemoteAddr sets the remote network address.
+
 	SetRemoteAddr(addr net.Addr)
-	// LocalAddr returns the local network address.
+
 	LocalAddr() net.Addr
-	// ReactorSub returns the reactor sub.
+
 	ReactorSub() *ReactorSub
-	// ReadToInboundBuffer read data from connection and  write to inbound buffer
+
 	ReadToInboundBuffer() (int, error)
 	SetContext(ctx interface{})
 	Context() interface{}
-	// IsAuthed returns true if the connection is authed.
+
 	IsAuthed() bool
-	// SetAuthed sets the connection is authed.
+
 	SetAuthed(authed bool)
-	// LastActivity returns the last activity time.
+
 	LastActivity() time.Time
-	// Uptime returns the connection uptime.
+
 	Uptime() time.Time
-	// SetMaxIdle sets the connection max idle time.
-	// If the connection is idle for more than the specified duration, it will be closed.
+
 	SetMaxIdle(duration time.Duration)
 
 	InboundBuffer() InboundBuffer
@@ -111,9 +100,6 @@ type Conn interface {
 	SetDeadline(t time.Time) error
 	SetReadDeadline(t time.Time) error
 	SetWriteDeadline(t time.Time) error
-
-	// ConnStats returns the connection stats.
-	// ConnStats() *ConnStats
 }
 
 type IWSConn interface {
@@ -127,13 +113,13 @@ type DefaultConn struct {
 	localAddr      net.Addr
 	eg             *Engine
 	reactorSub     *ReactorSub
-	inboundBuffer  InboundBuffer  // inboundBuffer InboundBuffer
-	outboundBuffer OutboundBuffer // outboundBuffer OutboundBuffer
-	closed         atomic.Bool    // if the connection is closed
-	isWAdded       bool           // if the connection is added to the write event
+	inboundBuffer  InboundBuffer
+	outboundBuffer OutboundBuffer
+	closed         atomic.Bool
+	isWAdded       bool
 	mu             deadlock.RWMutex
 	context        atomic.Value
-	authed         atomic.Bool // if the connection is authed
+	authed         atomic.Bool
 	id             atomic.Int64
 	uid            atomic.String
 	valueMap       sync.Map
@@ -174,19 +160,6 @@ func GetDefaultConn(id int64, connFd NetFd, localAddr, remoteAddr net.Addr, eg *
 }
 
 func CreateConn(id int64, connFd NetFd, localAddr, remoteAddr net.Addr, eg *Engine, reactorSub *ReactorSub) (Conn, error) {
-
-	// defaultConn := &DefaultConn{
-	// 	id:         id,
-	// 	fd:         connFd,
-	// 	remoteAddr: remoteAddr,
-	// 	localAddr:  localAddr,
-	// 	eg:         eg,
-	// 	reactorSub: reactorSub,
-	// 	closed:     false,
-	// 	valueMap:   map[string]interface{}{},
-	// 	uptime:     time.Now(),
-	// 	Log:        wklog.NewWKLog(fmt.Sprintf("Conn[%d]", id)),
-	// }
 
 	defaultConn := GetDefaultConn(id, connFd, localAddr, remoteAddr, eg, reactorSub)
 	if eg.options.TCPTLSConfig != nil {
@@ -242,9 +215,7 @@ func (d *DefaultConn) Write(b []byte) (int, error) {
 	if d.closed.Load() {
 		return -1, net.ErrClosed
 	}
-	// 这里不能使用d.mu上锁，否则会导致死锁 WSSConn死锁
-	// d.mu.Lock()
-	// defer d.mu.Unlock()
+
 	n, err := d.write(b)
 	if err != nil {
 		return 0, err
@@ -252,7 +223,6 @@ func (d *DefaultConn) Write(b []byte) (int, error) {
 	return n, nil
 }
 
-// write to outbound buffer
 func (d *DefaultConn) WriteToOutboundBuffer(b []byte) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
@@ -291,7 +261,6 @@ func (d *DefaultConn) Fd() NetFd {
 	return d.fd
 }
 
-// 调用次方法需要加锁
 func (d *DefaultConn) close(closeErr error) error {
 
 	d.mu.Lock()
@@ -302,17 +271,17 @@ func (d *DefaultConn) close(closeErr error) error {
 	}
 	d.closed.Store(true)
 
-	if closeErr != nil && !errors.Is(closeErr, syscall.ECONNRESET) { // closeErr有值，说明来自系统底层的错误，如果closeErr=nil目前了解的是不需要DeleteFd，ECONNRESET表示fd已经关闭，不需要再次关闭
-		err := d.reactorSub.DeleteFd(d) // 先删除fd
+	if closeErr != nil && !errors.Is(closeErr, syscall.ECONNRESET) {
+		err := d.reactorSub.DeleteFd(d)
 		if err != nil {
 			d.Debug("delete fd from poller error", zap.Error(err), zap.Int("fd", d.Fd().fd), zap.String("uid", d.uid.Load()))
 		}
 	}
 
-	_ = d.fd.Close()             // 后关闭fd
-	d.eg.RemoveConn(d)           // remove from the engine
-	d.reactorSub.ConnDec()       // decrease the connection count
-	d.eg.eventHandler.OnClose(d) // call the close handler
+	_ = d.fd.Close()
+	d.eg.RemoveConn(d)
+	d.reactorSub.ConnDec()
+	d.eg.eventHandler.OnClose(d)
 
 	d.release()
 
@@ -396,7 +365,7 @@ func (d *DefaultConn) Peek(n int) ([]byte, error) {
 	data := d.reactorSub.cache.Bytes()
 
 	resultData := make([]byte, len(data))
-	copy(resultData, data) // TODO: 这里需要复制一份，否则多线程下解析数据包会有问题 本人测试 15个连接15个消息 在协程下打印sendPacket的payload会有数据错误问题
+	copy(resultData, data)
 
 	return resultData, nil
 }
@@ -496,7 +465,6 @@ func (d *DefaultConn) SetMaxIdle(maxIdle time.Duration) {
 func (d *DefaultConn) flush() error {
 
 	d.mu.Lock()
-	// defer  d.mu.Unlock() // 这里不能defer锁，因为d.reactorSub.CloseConn里也会调用close的锁，导致死锁
 
 	if d.closed.Load() {
 		d.mu.Unlock()
@@ -526,15 +494,13 @@ func (d *DefaultConn) flush() error {
 	case syscall.EAGAIN:
 		d.Error("write error", zap.Error(err))
 	default:
-		// d.reactorSub.CloseConn 里使用了d.mu的锁
+
 		err = d.reactorSub.CloseConn(d, os.NewSyscallError("write", err))
 		if err != nil {
 			d.Error("failed to close conn", zap.Error(err))
 			return err
 		}
 	}
-	// All data have been drained, it's no need to monitor the writable events,
-	// remove the writable event from poller to help the future event-loops.
 
 	d.mu.Lock()
 	if d.outboundBuffer.IsEmpty() {
@@ -579,7 +545,7 @@ func (d *DefaultConn) write(b []byte) (int, error) {
 	if n == 0 {
 		return 0, nil
 	}
-	if d.overflowForOutbound(len(b)) { // overflow check
+	if d.overflowForOutbound(len(b)) {
 		return 0, syscall.EINVAL
 	}
 	var err error
@@ -601,10 +567,7 @@ func (d *DefaultConn) addWriteIfNotExist() error {
 }
 
 func (d *DefaultConn) removeWriteIfExist() error {
-	// if d.isWAdded {
-	// 	d.isWAdded = false
-	// 	return d.reactorSub.RemoveWrite(d)
-	// }
+
 	if d.closed.Load() {
 		return net.ErrClosed
 	}
@@ -628,7 +591,7 @@ func (d *DefaultConn) String() string {
 type TLSConn struct {
 	d                *DefaultConn
 	tlsconn          *tls.Conn
-	tmpInboundBuffer InboundBuffer // inboundBuffer InboundBuffer
+	tmpInboundBuffer InboundBuffer
 }
 
 func newTLSConn(d *DefaultConn) *TLSConn {
@@ -648,14 +611,14 @@ func (t *TLSConn) ReadToInboundBuffer() (int, error) {
 	if t.d.eg.options.Event.OnReadBytes != nil {
 		t.d.eg.options.Event.OnReadBytes(n)
 	}
-	_, err = t.tmpInboundBuffer.Write(readBuffer[:n]) // 将tls加密的内容写到tmpInboundBuffer内， tls会从tmpInboundBuffer读取数据（BuffReader接口）
+	_, err = t.tmpInboundBuffer.Write(readBuffer[:n])
 	if err != nil {
 		return 0, err
 	}
 	t.d.KeepLastActivity()
 
 	for {
-		tlsN, err := t.tlsconn.Read(readBuffer) // 这里其实是把tmpInboundBuffer的数据解密后放到readBuffer内了
+		tlsN, err := t.tlsconn.Read(readBuffer)
 		if err != nil {
 			if err == tls.ErrDataNotEnough {
 				return n, nil
@@ -665,7 +628,7 @@ func (t *TLSConn) ReadToInboundBuffer() (int, error) {
 		if tlsN == 0 {
 			break
 		}
-		_, err = t.d.inboundBuffer.Write(readBuffer[:tlsN]) // 再将readBuffer的数据放到inboundBuffer内，然后供上层应用读取
+		_, err = t.d.inboundBuffer.Write(readBuffer[:tlsN])
 		if err != nil {
 			return n, err
 		}
@@ -843,31 +806,6 @@ func (e *eofBuff) Read(p []byte) (int, error) {
 	}
 	return n, err
 }
-
-// func getConnFd(conn net.Conn) (int, error) {
-// 	sc, ok := conn.(interface {
-// 		SyscallConn() (syscall.RawConn, error)
-// 	})
-// 	if !ok {
-// 		return 0, errors.New("RawConn Unsupported")
-// 	}
-// 	rc, err := sc.SyscallConn()
-// 	if err != nil {
-// 		return 0, errors.New("RawConn Unsupported")
-// 	}
-// 	var newFd int
-// 	errCtrl := rc.Control(func(fd uintptr) {
-// 		newFd, err = syscall.Dup(int(fd))
-// 	})
-// 	if errCtrl != nil {
-// 		return 0, errCtrl
-// 	}
-// 	if err != nil {
-// 		return 0, err
-// 	}
-
-// 	return newFd, nil
-// }
 
 type connMatrix struct {
 	connCount atomic.Int32

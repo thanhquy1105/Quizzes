@@ -12,7 +12,6 @@ type dbMetrics struct {
 	wklog.Log
 	ctx context.Context
 
-	// ========== compact 压缩相关 ==========
 	compactTotalCount       atomic.Int64
 	compactDefaultCount     atomic.Int64
 	compactDeleteOnlyCount  atomic.Int64
@@ -26,7 +25,6 @@ type dbMetrics struct {
 	compactNumInProgress    atomic.Int64
 	compactMarkedFiles      atomic.Int64
 
-	// ========== flush 相关 ==========
 	flushCount              atomic.Int64
 	flushBytes              atomic.Int64
 	flushNumInProgress      atomic.Int64
@@ -34,23 +32,17 @@ type dbMetrics struct {
 	flushAsIngestTableCount atomic.Int64
 	flushAsIngestBytes      atomic.Int64
 
-	// ========== memtable 内存表相关 ==========
 	memTableSize        atomic.Int64
 	memTableCount       atomic.Int64
 	memTableZombieSize  atomic.Int64
 	memTableZombieCount atomic.Int64
 
-	// ========== Snapshots 镜像相关 ==========
 	snapshotsCount atomic.Int64
 
-	// ========== TableCache 相关 ==========
 	tableCacheSize  atomic.Int64
 	tableCacheCount atomic.Int64
 
-	// ========== TableIters 相关 ==========
 	tableItersCount atomic.Int64
-
-	// ========== WAL 相关 ==========
 
 	walFilesCount           atomic.Int64
 	walSize                 atomic.Int64
@@ -63,7 +55,6 @@ type dbMetrics struct {
 
 	diskSpaceUsage atomic.Int64
 
-	// ========== level 相关 ==========
 	levelNumFiles        atomic.Int64
 	levelFileSize        atomic.Int64
 	levelCompactScore    atomic.Int64
@@ -78,17 +69,13 @@ type dbMetrics struct {
 	levelTablesIngested  atomic.Int64
 	levelTablesMoved     atomic.Int64
 
-	// ========== message 相关 ==========
 	messageAppendBatchCount atomic.Int64
 
-	// ========== 基础 相关 ==========
 	setCount         atomic.Int64
 	deleteCount      atomic.Int64
 	deleteRangeCount atomic.Int64
 	commitCount      atomic.Int64
 
-	// ========== 数据操作 ==========
-	// 白名单
 	addAllowlist       atomic.Int64
 	getAllowlist       atomic.Int64
 	hasAllowlist       atomic.Int64
@@ -96,7 +83,6 @@ type dbMetrics struct {
 	removeAllowlist    atomic.Int64
 	removeAllAllowlist atomic.Int64
 
-	// 分布式配置
 	saveChannelClusterConfig        atomic.Int64
 	saveChannelClusterConfigs       atomic.Int64
 	getChannelClusterConfig         atomic.Int64
@@ -106,7 +92,6 @@ type dbMetrics struct {
 	getChannelClusterConfigCount    atomic.Int64
 	getChannelClusterConfigWithSlot atomic.Int64
 
-	// 频道
 	addChannel                atomic.Int64
 	updateChannel             atomic.Int64
 	getChannel                atomic.Int64
@@ -116,7 +101,6 @@ type dbMetrics struct {
 	getChannelAppliedIndex    atomic.Int64
 	deleteChannel             atomic.Int64
 
-	// 最近会话
 	addOrUpdateConversations            atomic.Int64
 	addOrUpdateConversationsAddWithUser atomic.Int64
 	getConversations                    atomic.Int64
@@ -128,14 +112,12 @@ type dbMetrics struct {
 	deleteConversations                 atomic.Int64
 	searchConversation                  atomic.Int64
 
-	// 黑名单
 	addDenylist       atomic.Int64
 	getDenylist       atomic.Int64
 	existDenylist     atomic.Int64
 	removeDenylist    atomic.Int64
 	removeAllDenylist atomic.Int64
 
-	// 设备
 	getDevice      atomic.Int64
 	getDevices     atomic.Int64
 	getDeviceCount atomic.Int64
@@ -143,12 +125,10 @@ type dbMetrics struct {
 	updateDevice   atomic.Int64
 	searchDevice   atomic.Int64
 
-	// 消息队列
 	appendMessageOfNotifyQueue  atomic.Int64
 	getMessagesOfNotifyQueue    atomic.Int64
 	removeMessagesOfNotifyQueue atomic.Int64
 
-	// 消息
 	appendMessages           atomic.Int64
 	appendMessagesBatch      atomic.Int64
 	getMessage               atomic.Int64
@@ -163,26 +143,22 @@ type dbMetrics struct {
 	setChannelLastMessageSeq atomic.Int64
 	searchMessages           atomic.Int64
 
-	// 订阅者
 	addSubscribers      atomic.Int64
 	getSubscribers      atomic.Int64
 	removeSubscribers   atomic.Int64
 	existSubscriber     atomic.Int64
 	removeAllSubscriber atomic.Int64
 
-	// 系统账号
 	addSystemUids    atomic.Int64
 	removeSystemUids atomic.Int64
 	getSystemUids    atomic.Int64
 
-	// 用户
 	getUser    atomic.Int64
 	existUser  atomic.Int64
 	searchUser atomic.Int64
 	addUser    atomic.Int64
 	updateUser atomic.Int64
 
-	// leader_term_sequence
 	setLeaderTermStartIndex                   atomic.Int64
 	leaderLastTerm                            atomic.Int64
 	leaderTermStartIndex                      atomic.Int64
@@ -195,7 +171,6 @@ func NewDBMetrics() *dbMetrics {
 		Log: wklog.NewWKLog("dbMetrics"),
 	}
 
-	// ========== compact 压缩相关 ==========
 	compactTotalCount := NewInt64ObservableGauge("db_compact_total_count")
 	compactDefaultCount := NewInt64ObservableGauge("db_compact_default_count")
 	compactDeleteOnlyCount := NewInt64ObservableGauge("db_compact_delete_only_count")
@@ -225,7 +200,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, compactTotalCount, compactDefaultCount, compactDeleteOnlyCount, compactElisionOnlyCount, compactMoveCount, compactReadCount, compactRewriteCount, compactMultiLevelCount, compactEstimatedDebt, compactInProgressBytes, compactNumInProgress, compactMarkedFiles)
 
-	// ========== flush 相关 ==========
 	flushCount := NewInt64ObservableGauge("db_flush_count")
 	flushBytes := NewInt64ObservableGauge("db_flush_bytes")
 	flushNumInProgress := NewInt64ObservableGauge("db_flush_num_in_progress")
@@ -243,7 +217,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, flushCount, flushBytes, flushNumInProgress, flushAsIngestCount, flushAsIngestTableCount, flushAsIngestBytes)
 
-	// ========== memtable 内存表相关 ==========
 	memTableSize := NewInt64ObservableGauge("db_memtable_size")
 	memTableCount := NewInt64ObservableGauge("db_memtable_count")
 	memTableZombieSize := NewInt64ObservableGauge("db_memtable_zombie_size")
@@ -257,7 +230,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, memTableSize, memTableCount, memTableZombieSize, memTableZombieCount)
 
-	// ========== Snapshots 镜像相关 ==========
 	snapshotsCount := NewInt64ObservableGauge("db_snapshots_count")
 
 	RegisterCallback(func(ctx context.Context, obs metric.Observer) error {
@@ -265,7 +237,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, snapshotsCount)
 
-	// ========== TableCache 相关 ==========
 	tableCacheSize := NewInt64ObservableGauge("db_table_cache_size")
 	tableCacheCount := NewInt64ObservableGauge("db_table_cache_count")
 
@@ -275,7 +246,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, tableCacheSize, tableCacheCount)
 
-	// ========== TableIters 相关 ==========
 	tableItersCount := NewInt64ObservableGauge("db_table_iters_count")
 
 	RegisterCallback(func(ctx context.Context, obs metric.Observer) error {
@@ -283,7 +253,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, tableItersCount)
 
-	// ========== WAL 相关 ==========
 	walFilesCount := NewInt64ObservableGauge("db_wal_files_count")
 	walSize := NewInt64ObservableGauge("db_wal_size")
 	walPhysicalSize := NewInt64ObservableGauge("db_wal_physical_size")
@@ -306,14 +275,11 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, walFilesCount, walSize, walPhysicalSize, walObsoleteFilesCount, walObsoletePhysicalSize, walBytesIn, walBytesWritten, diskSpaceUsage)
 
-	// ========== Log Writer 相关 ==========
 	logWriterBytes := NewInt64ObservableGauge("db_log_writer_bytes")
 	RegisterCallback(func(ctx context.Context, obs metric.Observer) error {
 		obs.ObserveInt64(logWriterBytes, m.logWriterBytes.Load())
 		return nil
 	}, logWriterBytes)
-
-	// ========== level 相关 ==========
 
 	levelNumFiles := NewInt64ObservableGauge("db_alllevel_num_files")
 	levelFileSize := NewInt64ObservableGauge("db_alllevel_file_size")
@@ -352,15 +318,12 @@ func NewDBMetrics() *dbMetrics {
 		levelTablesFlushed, levelTablesIngested, levelTablesMoved,
 	)
 
-	// ========== message 相关 ==========
-
 	messageAppendBatchCount := NewInt64ObservableCounter("db_message_append_batch_count")
 	RegisterCallback(func(ctx context.Context, obs metric.Observer) error {
 		obs.ObserveInt64(messageAppendBatchCount, m.messageAppendBatchCount.Load())
 		return nil
 	}, messageAppendBatchCount)
 
-	// ========== 基础 相关 ==========
 	setCount := NewInt64ObservableCounter("db_set_count")
 	deleteCount := NewInt64ObservableCounter("db_delete_count")
 	deleteRangeCount := NewInt64ObservableCounter("db_deleterange_count")
@@ -373,8 +336,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, setCount, deleteCount, deleteRangeCount, commitCount)
 
-	// ========== 数据操作 ==========
-	// 白名单
 	addAllowlist := NewInt64ObservableCounter("db_add_allowlist_count")
 	getAllowlist := NewInt64ObservableCounter("db_get_allowlist_count")
 	hasAllowlist := NewInt64ObservableCounter("db_has_allowlist_count")
@@ -393,7 +354,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, addAllowlist, getAllowlist, hasAllowlist, existAllowlist, removeAllowlist, removeAllAllowlist)
 
-	// 分布式
 	saveChannelClusterConfig := NewInt64ObservableCounter("db_save_channel_cluster_config_count")
 	saveChannelClusterConfigs := NewInt64ObservableCounter("db_save_channel_cluster_configs_count")
 	getChannelClusterConfig := NewInt64ObservableCounter("db_get_channel_cluster_config_count")
@@ -415,7 +375,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, saveChannelClusterConfig, getChannelClusterConfig, getChannelClusterConfigVersion, getChannelClusterConfigs, searchChannelClusterConfig, getChannelClusterConfigCount, getChannelClusterConfigWithSlot, saveChannelClusterConfigs)
 
-	// 频道
 	addChannel := NewInt64ObservableCounter("db_add_channel_count")
 	updateChannel := NewInt64ObservableCounter("db_update_channel_count")
 	getChannel := NewInt64ObservableCounter("db_get_channel_count")
@@ -437,7 +396,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, addChannel, updateChannel, getChannel, searchChannels, existChannel, updateChannelAppliedIndex, getChannelAppliedIndex, deleteChannel)
 
-	// 最近会话
 	addOrUpdateConversations := NewInt64ObservableCounter("db_add_or_update_conversations_count")
 	addOrUpdateConversationsAddWithUser := NewInt64ObservableCounter("db_add_or_update_conversations_add_with_user_count")
 	getConversations := NewInt64ObservableCounter("db_get_conversations_count")
@@ -463,7 +421,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, addOrUpdateConversations, getConversations, getConversationsByType, getLastConversations, getConversation, existConversation, deleteConversation, deleteConversations, searchConversation, addOrUpdateConversationsAddWithUser)
 
-	// 黑名单
 	addDenylist := NewInt64ObservableCounter("db_add_denylist_count")
 	getDenylist := NewInt64ObservableCounter("db_get_denylist_count")
 	existDenylist := NewInt64ObservableCounter("db_exist_denylist_count")
@@ -479,7 +436,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, addDenylist, getDenylist, existDenylist, removeDenylist, removeAllDenylist)
 
-	// 设备
 	getDevice := NewInt64ObservableCounter("db_get_device_count")
 	getDevices := NewInt64ObservableCounter("db_get_devices_count")
 	getDeviceCount := NewInt64ObservableCounter("db_get_device_count_count")
@@ -497,7 +453,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, getDevice, getDevices, getDeviceCount, addDevice, updateDevice, searchDevice)
 
-	// 消息队列
 	appendMessageOfNotifyQueue := NewInt64ObservableCounter("db_append_message_of_notify_queue_count")
 	getMessagesOfNotifyQueue := NewInt64ObservableCounter("db_get_messages_of_notify_queue_count")
 	removeMessagesOfNotifyQueue := NewInt64ObservableCounter("db_remove_messages_of_notify_queue_count")
@@ -509,7 +464,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, appendMessageOfNotifyQueue, getMessagesOfNotifyQueue, removeMessagesOfNotifyQueue)
 
-	// 消息
 	appendMessages := NewInt64ObservableCounter("db_append_messages_count")
 	appendMessagesBatch := NewInt64ObservableCounter("db_append_messages_batch_count")
 	getMessage := NewInt64ObservableCounter("db_get_message_count")
@@ -541,7 +495,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, appendMessages, appendMessagesBatch, getMessage, loadPrevRangeMsgs, loadNextRangeMsgs, loadMsg, loadLastMsgs, loadLastMsgsWithEnd, loadNextRangeMsgsForSize, truncateLogTo, getChannelLastMessageSeq, setChannelLastMessageSeq, searchMessages)
 
-	// 订阅者
 	addSubscribers := NewInt64ObservableCounter("db_add_subscribers_count")
 	getSubscribers := NewInt64ObservableCounter("db_get_subscribers_count")
 	removeSubscribers := NewInt64ObservableCounter("db_remove_subscribers_count")
@@ -557,7 +510,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, addSubscribers, getSubscribers, removeSubscribers, existSubscriber, removeAllSubscriber)
 
-	// 系统账号
 	addSystemUids := NewInt64ObservableCounter("db_add_system_uids_count")
 	removeSystemUids := NewInt64ObservableCounter("db_remove_system_uids_count")
 	getSystemUids := NewInt64ObservableCounter("db_get_system_uids_count")
@@ -569,7 +521,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	}, addSystemUids, removeSystemUids, getSystemUids)
 
-	// 用户
 	getUser := NewInt64ObservableCounter("db_get_user_count")
 	existUser := NewInt64ObservableCounter("db_exist_user_count")
 	searchUser := NewInt64ObservableCounter("db_search_user_count")
@@ -585,7 +536,6 @@ func NewDBMetrics() *dbMetrics {
 		return nil
 	})
 
-	// leader_term_sequence
 	setLeaderTermStartIndex := NewInt64ObservableCounter("db_set_leader_term_start_index_count")
 	leaderLastTerm := NewInt64ObservableCounter("db_leader_last_term_count")
 	leaderTermStartIndex := NewInt64ObservableCounter("db_leader_term_start_index_count")
@@ -604,7 +554,6 @@ func NewDBMetrics() *dbMetrics {
 	return m
 }
 
-// ========== compact 压缩相关 ==========
 func (m *dbMetrics) CompactTotalCountSet(shardId uint32, v int64) {
 	m.compactTotalCount.Store(v)
 }
@@ -642,7 +591,6 @@ func (m *dbMetrics) CompactMarkedFilesSet(shardId uint32, v int64) {
 	m.compactMarkedFiles.Store(v)
 }
 
-// ========== flush 相关 ==========
 func (m *dbMetrics) FlushCountAdd(shardId uint32, v int64) {
 	m.flushCount.Store(v)
 }
@@ -662,7 +610,6 @@ func (m *dbMetrics) FlushAsIngestBytesAdd(shardId uint32, v int64) {
 	m.flushAsIngestBytes.Store(v)
 }
 
-// ========== memtable 内存表相关 ==========
 func (m *dbMetrics) MemTableSizeSet(shardId uint32, v int64) {
 
 	m.memTableSize.Store(v)
@@ -682,13 +629,11 @@ func (m *dbMetrics) MemTableZombieCountSet(shardId uint32, v int64) {
 	m.memTableZombieCount.Store(v)
 }
 
-// ========== Snapshots 镜像相关 ==========
 func (m *dbMetrics) SnapshotsCountSet(shardId uint32, v int64) {
 
 	m.snapshotsCount.Store(v)
 }
 
-// ========== TableCache 相关 ==========
 func (m *dbMetrics) TableCacheSizeSet(shardId uint32, v int64) {
 	m.tableCacheSize.Store(v)
 }
@@ -696,12 +641,9 @@ func (m *dbMetrics) TableCacheCountSet(shardId uint32, v int64) {
 	m.tableCacheCount.Store(v)
 }
 
-// ========== TableIters 相关 ==========
 func (m *dbMetrics) TableItersCountSet(shardId uint32, v int64) {
 	m.tableItersCount.Store(v)
 }
-
-// ========== WAL 相关 ==========
 
 func (m *dbMetrics) WALFilesCountSet(shardId uint32, v int64) {
 	m.walFilesCount.Store(v)
@@ -729,12 +671,9 @@ func (m *dbMetrics) DiskSpaceUsageSet(shardId uint32, v int64) {
 	m.diskSpaceUsage.Store(v)
 }
 
-// ========== Log Writer 相关 ==========
 func (m *dbMetrics) LogWriterBytesSet(shardId uint32, v int64) {
 	m.logWriterBytes.Store(v)
 }
-
-// ========== level 相关 ==========
 
 func (m *dbMetrics) LevelNumFilesSet(shardId uint32, v int64) {
 	m.levelNumFiles.Store(v)
@@ -779,12 +718,9 @@ func (m *dbMetrics) LevelTablesMovedSet(shardId uint32, v int64) {
 	m.levelTablesMoved.Store(v)
 }
 
-// ========== message 相关 ==========
 func (m *dbMetrics) MessageAppendBatchCountAdd(v int64) {
 	m.messageAppendBatchCount.Add(v)
 }
-
-// ========== 基础 相关 ==========
 
 func (m *dbMetrics) SetAdd(v int64) {
 
@@ -802,8 +738,6 @@ func (m *dbMetrics) CommitAdd(v int64) {
 	m.commitCount.Add(v)
 }
 
-// ========== 数据操作 ==========
-// 白名单
 func (m *dbMetrics) AddAllowlistAdd(v int64) {
 	m.addAllowlist.Add(v)
 }
@@ -823,7 +757,6 @@ func (m *dbMetrics) RemoveAllAllowlistAdd(v int64) {
 	m.removeAllAllowlist.Add(v)
 }
 
-// 分布式配置
 func (m *dbMetrics) SaveChannelClusterConfigAdd(v int64) {
 	m.saveChannelClusterConfig.Add(v)
 }
@@ -849,7 +782,6 @@ func (m *dbMetrics) GetChannelClusterConfigWithSlotIdAdd(v int64) {
 	m.getChannelClusterConfigWithSlot.Add(v)
 }
 
-// 频道
 func (m *dbMetrics) AddChannelAdd(v int64) {
 	m.addChannel.Add(v)
 }
@@ -876,7 +808,6 @@ func (m *dbMetrics) DeleteChannelAdd(v int64) {
 	m.deleteChannel.Add(v)
 }
 
-// 最近会话
 func (m *dbMetrics) AddOrUpdateConversationsAdd(v int64) {
 	m.addOrUpdateConversations.Add(v)
 }
@@ -909,8 +840,6 @@ func (m *dbMetrics) SearchConversationAdd(v int64) {
 	m.searchConversation.Add(v)
 }
 
-// 黑名单
-
 func (m *dbMetrics) AddDenylistAdd(v int64) {
 	m.addDenylist.Add(v)
 }
@@ -928,7 +857,6 @@ func (m *dbMetrics) RemoveAllDenylistAdd(v int64) {
 	m.removeAllDenylist.Add(v)
 }
 
-// 设备
 func (m *dbMetrics) GetDeviceAdd(v int64) {
 	m.getDevice.Add(v)
 }
@@ -948,7 +876,6 @@ func (m *dbMetrics) SearchDeviceAdd(v int64) {
 	m.searchDevice.Add(v)
 }
 
-// 消息队列
 func (m *dbMetrics) AppendMessageOfNotifyQueueAdd(v int64) {
 	m.appendMessageOfNotifyQueue.Add(v)
 }
@@ -959,7 +886,6 @@ func (m *dbMetrics) RemoveMessagesOfNotifyQueueAdd(v int64) {
 	m.removeMessagesOfNotifyQueue.Add(v)
 }
 
-// 消息
 func (m *dbMetrics) AppendMessagesAdd(v int64) {
 	m.appendMessages.Add(v)
 }
@@ -1000,7 +926,6 @@ func (m *dbMetrics) SearchMessagesAdd(v int64) {
 	m.searchMessages.Add(v)
 }
 
-// 订阅者
 func (m *dbMetrics) AddSubscribersAdd(v int64) {
 	m.addSubscribers.Add(v)
 }
@@ -1017,7 +942,6 @@ func (m *dbMetrics) RemoveAllSubscriberAdd(v int64) {
 	m.removeAllSubscriber.Add(v)
 }
 
-// 系统账号
 func (m *dbMetrics) AddSystemUidsAdd(v int64) {
 	m.addSystemUids.Add(v)
 }
@@ -1028,7 +952,6 @@ func (m *dbMetrics) GetSystemUidsAdd(v int64) {
 	m.getSystemUids.Add(v)
 }
 
-// 用户
 func (m *dbMetrics) GetUserAdd(v int64) {
 	m.getUser.Add(v)
 }
@@ -1045,7 +968,6 @@ func (m *dbMetrics) UpdateUserAdd(v int64) {
 	m.updateUser.Add(v)
 }
 
-// leader_term_sequence
 func (m *dbMetrics) SetLeaderTermStartIndexAdd(v int64) {
 	m.setLeaderTermStartIndex.Add(v)
 }

@@ -13,14 +13,13 @@ import (
 
 type ReactorSub struct {
 	eg         *Engine
-	idx        int // index of the current sub reactor
+	idx        int
 	ReadBuffer []byte
 	wklog.Log
-	cache     bytes.Buffer // temporary buffer for scattered bytes
+	cache     bytes.Buffer
 	connCount atomic.Int32
 }
 
-// NewReactorSub instantiates a sub reactor.
 func NewReactorSub(eg *Engine, index int) *ReactorSub {
 	return &ReactorSub{
 		eg:         eg,
@@ -30,13 +29,11 @@ func NewReactorSub(eg *Engine, index int) *ReactorSub {
 	}
 }
 
-// Start starts the sub reactor.
 func (r *ReactorSub) Start() error {
-	fmt.Println("warn：此项目在windows系统上存在许多BUG，请尽量在Linux系统运行此项目")
+	fmt.Println("warnwindowsBUGLinux")
 	return nil
 }
 
-// Stop stops the sub reactor.
 func (r *ReactorSub) Stop() error {
 	return nil
 }
@@ -53,7 +50,6 @@ func (r *ReactorSub) ConnDec() {
 	r.connCount.Dec()
 }
 
-// AddConn adds a connection to the sub reactor.
 func (r *ReactorSub) AddConn(conn Conn) error {
 	r.eg.AddConn(conn)
 	r.ConnInc()

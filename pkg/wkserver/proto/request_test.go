@@ -11,14 +11,13 @@ func TestRequest(t *testing.T) {
 	var data []byte
 	var err error
 	t.Run("Marshal", func(t *testing.T) {
-		// 测试代码
+
 		req := &Request{
 			Id:   12345,
 			Path: "/test/path",
 			Body: []byte("hello, world"),
 		}
 
-		// Marshal
 		data, err = req.Marshal()
 		if err != nil {
 			fmt.Println("Marshal error:", err)
@@ -28,7 +27,7 @@ func TestRequest(t *testing.T) {
 	})
 
 	t.Run("Unmarshal", func(t *testing.T) {
-		// Unmarshal
+
 		var newReq Request
 		if err := newReq.Unmarshal(data); err != nil {
 			fmt.Println("Unmarshal error:", err)
@@ -98,7 +97,7 @@ func TestConnect_MarshalUnmarshal(t *testing.T) {
 				Id:    9001,
 				Uid:   "largeuser",
 				Token: "largetoken",
-				Body:  bytes.Repeat([]byte("a"), 1<<16), // 64KB Body
+				Body:  bytes.Repeat([]byte("a"), 1<<16),
 			},
 			wantErr: false,
 			expected: Connect{
@@ -112,14 +111,13 @@ func TestConnect_MarshalUnmarshal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// 测试 Marshal
+
 			data, err := tt.input.Marshal()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Marshal() error = %v, wantErr = %v", err, tt.wantErr)
 				return
 			}
 
-			// 测试 Unmarshal
 			var result Connect
 			err = result.Unmarshal(data)
 			if (err != nil) != tt.wantErr {
@@ -127,7 +125,6 @@ func TestConnect_MarshalUnmarshal(t *testing.T) {
 				return
 			}
 
-			// 如果没有错误，验证结果是否与预期一致
 			if !tt.wantErr && !compareConnect(result, tt.expected) {
 				t.Errorf("Unmarshal() got = %+v, want = %+v", result, tt.expected)
 			}
@@ -135,7 +132,6 @@ func TestConnect_MarshalUnmarshal(t *testing.T) {
 	}
 }
 
-// 比较两个 Connect 对象是否相等
 func compareConnect(a, b Connect) bool {
 	return a.Id == b.Id && a.Uid == b.Uid && a.Token == b.Token && bytes.Equal(a.Body, b.Body)
 }
@@ -180,7 +176,7 @@ func TestConnack_MarshalUnmarshal(t *testing.T) {
 			input: Connack{
 				Id:     9001,
 				Status: 2,
-				Body:   bytes.Repeat([]byte("a"), 1<<16), // 64KB Body
+				Body:   bytes.Repeat([]byte("a"), 1<<16),
 			},
 			wantErr: false,
 			expected: Connack{
@@ -193,14 +189,13 @@ func TestConnack_MarshalUnmarshal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// 测试 Marshal
+
 			data, err := tt.input.Marshal()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Marshal() error = %v, wantErr = %v", err, tt.wantErr)
 				return
 			}
 
-			// 测试 Unmarshal
 			var result Connack
 			err = result.Unmarshal(data)
 			if (err != nil) != tt.wantErr {
@@ -208,7 +203,6 @@ func TestConnack_MarshalUnmarshal(t *testing.T) {
 				return
 			}
 
-			// 如果没有错误，验证结果是否与预期一致
 			if !tt.wantErr && !compareConnack(result, tt.expected) {
 				t.Errorf("Unmarshal() got = %+v, want = %+v", result, tt.expected)
 			}
@@ -216,7 +210,6 @@ func TestConnack_MarshalUnmarshal(t *testing.T) {
 	}
 }
 
-// 比较两个 Connack 对象是否相等
 func compareConnack(a, b Connack) bool {
 	return a.Id == b.Id && a.Status == b.Status && bytes.Equal(a.Body, b.Body)
 }
@@ -266,7 +259,7 @@ func TestResponse_MarshalUnmarshal(t *testing.T) {
 				Id:        9001,
 				Status:    StatusError,
 				Timestamp: 1637849938,
-				Body:      bytes.Repeat([]byte("a"), 1<<16), // 64KB Body
+				Body:      bytes.Repeat([]byte("a"), 1<<16),
 			},
 			wantErr: false,
 			expected: Response{
@@ -280,14 +273,13 @@ func TestResponse_MarshalUnmarshal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// 测试 Marshal
+
 			data, err := tt.input.Marshal()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Marshal() error = %v, wantErr = %v", err, tt.wantErr)
 				return
 			}
 
-			// 测试 Unmarshal
 			var result Response
 			err = result.Unmarshal(data)
 			if (err != nil) != tt.wantErr {
@@ -295,7 +287,6 @@ func TestResponse_MarshalUnmarshal(t *testing.T) {
 				return
 			}
 
-			// 如果没有错误，验证结果是否与预期一致
 			if !tt.wantErr && !compareResponse(result, tt.expected) {
 				t.Errorf("Unmarshal() got = %+v, want = %+v", result, tt.expected)
 			}
@@ -303,7 +294,6 @@ func TestResponse_MarshalUnmarshal(t *testing.T) {
 	}
 }
 
-// 比较两个 Response 对象是否相等
 func compareResponse(a, b Response) bool {
 	return a.Id == b.Id && a.Status == b.Status && a.Timestamp == b.Timestamp && bytes.Equal(a.Body, b.Body)
 }
@@ -352,7 +342,7 @@ func TestMessage_MarshalUnmarshal(t *testing.T) {
 			input: Message{
 				Id:        9001,
 				MsgType:   3001,
-				Content:   bytes.Repeat([]byte("a"), 1<<16), // 64KB Content
+				Content:   bytes.Repeat([]byte("a"), 1<<16),
 				Timestamp: 1637849938,
 			},
 			wantErr: false,
@@ -367,14 +357,13 @@ func TestMessage_MarshalUnmarshal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// 测试 Marshal
+
 			data, err := tt.input.Marshal()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Marshal() error = %v, wantErr = %v", err, tt.wantErr)
 				return
 			}
 
-			// 测试 Unmarshal
 			var result Message
 			err = result.Unmarshal(data)
 			if (err != nil) != tt.wantErr {
@@ -382,7 +371,6 @@ func TestMessage_MarshalUnmarshal(t *testing.T) {
 				return
 			}
 
-			// 如果没有错误，验证结果是否与预期一致
 			if !tt.wantErr && !compareMessage(result, tt.expected) {
 				t.Errorf("Unmarshal() got = %+v, want = %+v", result, tt.expected)
 			}
@@ -390,12 +378,10 @@ func TestMessage_MarshalUnmarshal(t *testing.T) {
 	}
 }
 
-// 比较两个 Message 对象是否相等
 func compareMessage(a, b Message) bool {
 	return a.Id == b.Id && a.MsgType == b.MsgType && a.Timestamp == b.Timestamp && bytes.Equal(a.Content, b.Content)
 }
 
-// TestBatchMessage_EncodeDecodeBasic 测试 BatchMessage 基本编码解码功能
 func TestBatchMessage_EncodeDecodeBasic(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -495,7 +481,7 @@ func TestBatchMessage_EncodeDecodeBasic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// 测试 Encode
+
 			data, err := tt.input.Encode()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Encode() error = %v, wantErr = %v", err, tt.wantErr)
@@ -503,10 +489,9 @@ func TestBatchMessage_EncodeDecodeBasic(t *testing.T) {
 			}
 
 			if tt.wantErr {
-				return // 如果期望错误，不继续测试解码
+				return
 			}
 
-			// 测试 Decode
 			var result BatchMessage
 			err = result.Decode(data)
 			if err != nil {
@@ -514,7 +499,6 @@ func TestBatchMessage_EncodeDecodeBasic(t *testing.T) {
 				return
 			}
 
-			// 验证结果
 			if !compareBatchMessage(result, tt.expected) {
 				t.Errorf("Decode() got = %+v, want = %+v", result, tt.expected)
 			}
@@ -522,7 +506,6 @@ func TestBatchMessage_EncodeDecodeBasic(t *testing.T) {
 	}
 }
 
-// 比较两个 BatchMessage 对象是否相等
 func compareBatchMessage(a, b BatchMessage) bool {
 	if a.Count != b.Count {
 		return false
@@ -542,10 +525,9 @@ func compareBatchMessage(a, b BatchMessage) bool {
 	return true
 }
 
-// TestBatchMessage_EdgeCases 测试 BatchMessage 边界情况
 func TestBatchMessage_EdgeCases(t *testing.T) {
 	t.Run("Large batch", func(t *testing.T) {
-		// 创建大量消息的批次
+
 		messageCount := 1000
 		messages := make([]*Message, messageCount)
 		for i := 0; i < messageCount; i++ {
@@ -562,14 +544,12 @@ func TestBatchMessage_EdgeCases(t *testing.T) {
 			Count:    uint32(messageCount),
 		}
 
-		// 编码
 		data, err := batchMsg.Encode()
 		if err != nil {
 			t.Errorf("Encode() error = %v", err)
 			return
 		}
 
-		// 解码
 		var result BatchMessage
 		err = result.Decode(data)
 		if err != nil {
@@ -577,7 +557,6 @@ func TestBatchMessage_EdgeCases(t *testing.T) {
 			return
 		}
 
-		// 验证
 		if result.Count != uint32(messageCount) {
 			t.Errorf("Count mismatch: got %d, want %d", result.Count, messageCount)
 		}
@@ -586,7 +565,6 @@ func TestBatchMessage_EdgeCases(t *testing.T) {
 			t.Errorf("Messages length mismatch: got %d, want %d", len(result.Messages), messageCount)
 		}
 
-		// 验证前几个和后几个消息
 		for i := 0; i < 5; i++ {
 			if !compareMessage(*result.Messages[i], *messages[i]) {
 				t.Errorf("Message %d mismatch", i)
@@ -601,8 +579,8 @@ func TestBatchMessage_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("Messages with large content", func(t *testing.T) {
-		// 创建包含大内容的消息
-		largeContent := bytes.Repeat([]byte("A"), 64*1024) // 64KB
+
+		largeContent := bytes.Repeat([]byte("A"), 64*1024)
 		messages := []*Message{
 			{
 				Id:        1,
@@ -613,7 +591,7 @@ func TestBatchMessage_EdgeCases(t *testing.T) {
 			{
 				Id:        2,
 				MsgType:   uint32(MsgTypeResp),
-				Content:   bytes.Repeat([]byte("B"), 32*1024), // 32KB
+				Content:   bytes.Repeat([]byte("B"), 32*1024),
 				Timestamp: 1637849939,
 			},
 		}
@@ -623,14 +601,12 @@ func TestBatchMessage_EdgeCases(t *testing.T) {
 			Count:    2,
 		}
 
-		// 编码
 		data, err := batchMsg.Encode()
 		if err != nil {
 			t.Errorf("Encode() error = %v", err)
 			return
 		}
 
-		// 解码
 		var result BatchMessage
 		err = result.Decode(data)
 		if err != nil {
@@ -638,14 +614,13 @@ func TestBatchMessage_EdgeCases(t *testing.T) {
 			return
 		}
 
-		// 验证
 		if !compareBatchMessage(result, batchMsg) {
 			t.Errorf("Large content batch message mismatch")
 		}
 	})
 
 	t.Run("Mixed message types", func(t *testing.T) {
-		// 创建不同类型的消息
+
 		messages := []*Message{
 			{
 				Id:        1,
@@ -690,14 +665,12 @@ func TestBatchMessage_EdgeCases(t *testing.T) {
 			Count:    uint32(len(messages)),
 		}
 
-		// 编码
 		data, err := batchMsg.Encode()
 		if err != nil {
 			t.Errorf("Encode() error = %v", err)
 			return
 		}
 
-		// 解码
 		var result BatchMessage
 		err = result.Decode(data)
 		if err != nil {
@@ -705,14 +678,12 @@ func TestBatchMessage_EdgeCases(t *testing.T) {
 			return
 		}
 
-		// 验证
 		if !compareBatchMessage(result, batchMsg) {
 			t.Errorf("Mixed message types batch mismatch")
 		}
 	})
 }
 
-// TestBatchMessage_ErrorHandling 测试 BatchMessage 错误处理
 func TestBatchMessage_ErrorHandling(t *testing.T) {
 	t.Run("Decode empty data", func(t *testing.T) {
 		var batchMsg BatchMessage
@@ -727,7 +698,7 @@ func TestBatchMessage_ErrorHandling(t *testing.T) {
 
 	t.Run("Decode insufficient data", func(t *testing.T) {
 		var batchMsg BatchMessage
-		// 只有2个字节，不足以读取Count字段（需要4个字节）
+
 		err := batchMsg.Decode([]byte{0x01, 0x02})
 		if err == nil {
 			t.Error("Expected error for insufficient data, got nil")
@@ -738,7 +709,7 @@ func TestBatchMessage_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("Decode truncated message data", func(t *testing.T) {
-		// 创建一个有效的批量消息
+
 		originalMsg := &Message{
 			Id:        1,
 			MsgType:   uint32(MsgTypeRequest),
@@ -751,13 +722,11 @@ func TestBatchMessage_ErrorHandling(t *testing.T) {
 			Count:    1,
 		}
 
-		// 编码
 		data, err := batchMsg.Encode()
 		if err != nil {
 			t.Fatalf("Encode() error = %v", err)
 		}
 
-		// 截断数据（移除最后10个字节）
 		if len(data) > 10 {
 			truncatedData := data[:len(data)-10]
 
@@ -770,7 +739,7 @@ func TestBatchMessage_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("Count mismatch", func(t *testing.T) {
-		// 手动构造错误的数据：Count说有2个消息，但实际只有1个
+
 		originalMsg := &Message{
 			Id:        1,
 			MsgType:   uint32(MsgTypeRequest),
@@ -778,20 +747,18 @@ func TestBatchMessage_ErrorHandling(t *testing.T) {
 			Timestamp: 1637849938,
 		}
 
-		// 先编码一个正常的消息
 		msgData, err := originalMsg.Encode()
 		if err != nil {
 			t.Fatalf("Message encode error = %v", err)
 		}
 
-		// 手动构造批量消息数据：Count=2，但只有1个消息
 		data := make([]byte, 4+len(msgData))
-		// 写入Count=2
+
 		data[0] = 2
 		data[1] = 0
 		data[2] = 0
 		data[3] = 0
-		// 写入1个消息数据
+
 		copy(data[4:], msgData)
 
 		var result BatchMessage
@@ -802,11 +769,11 @@ func TestBatchMessage_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("Invalid message in batch", func(t *testing.T) {
-		// 手动构造包含无效消息的批量数据
+
 		data := []byte{
-			// Count = 1
+
 			1, 0, 0, 0,
-			// 无效的消息数据（太短）
+
 			1, 2, 3,
 		}
 
@@ -818,7 +785,6 @@ func TestBatchMessage_ErrorHandling(t *testing.T) {
 	})
 }
 
-// TestBatchMessage_Size 测试 BatchMessage Size 方法
 func TestBatchMessage_Size(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -831,7 +797,7 @@ func TestBatchMessage_Size(t *testing.T) {
 				Messages: []*Message{},
 				Count:    0,
 			},
-			expected: 4, // 只有Count字段
+			expected: 4,
 		},
 		{
 			name: "Single message",
@@ -846,7 +812,7 @@ func TestBatchMessage_Size(t *testing.T) {
 				},
 				Count: 1,
 			},
-			expected: 4 + (8 + 4 + 8 + 4 + 4), // Count + Message fields
+			expected: 4 + (8 + 4 + 8 + 4 + 4),
 		},
 	}
 
@@ -857,7 +823,6 @@ func TestBatchMessage_Size(t *testing.T) {
 				t.Errorf("Size() = %d, want %d", size, tt.expected)
 			}
 
-			// 验证Size()与实际编码后的长度一致
 			data, err := tt.input.Encode()
 			if err != nil {
 				t.Errorf("Encode() error = %v", err)
@@ -871,13 +836,11 @@ func TestBatchMessage_Size(t *testing.T) {
 	}
 }
 
-// TestBatchMessage_Performance 性能测试
 func TestBatchMessage_Performance(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping performance test in short mode")
 	}
 
-	// 创建大批量消息
 	messageCount := 10000
 	messages := make([]*Message, messageCount)
 	for i := 0; i < messageCount; i++ {
@@ -894,7 +857,6 @@ func TestBatchMessage_Performance(t *testing.T) {
 		Count:    uint32(messageCount),
 	}
 
-	// 测试编码性能
 	data, err := batchMsg.Encode()
 	if err != nil {
 		t.Fatalf("Encode() error = %v", err)
@@ -902,14 +864,12 @@ func TestBatchMessage_Performance(t *testing.T) {
 
 	t.Logf("Encoded %d messages, total size: %d bytes", messageCount, len(data))
 
-	// 测试解码性能
 	var result BatchMessage
 	err = result.Decode(data)
 	if err != nil {
 		t.Fatalf("Decode() error = %v", err)
 	}
 
-	// 验证解码结果
 	if result.Count != uint32(messageCount) {
 		t.Errorf("Count mismatch: got %d, want %d", result.Count, messageCount)
 	}
@@ -919,14 +879,13 @@ func TestBatchMessage_Performance(t *testing.T) {
 	}
 }
 
-// BenchmarkBatchMessage_Encode 基准测试编码性能
 func BenchmarkBatchMessage_Encode(b *testing.B) {
-	// 创建不同大小的批量消息进行基准测试
+
 	sizes := []int{1, 10, 100, 1000}
 
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
-			// 准备测试数据
+
 			messages := make([]*Message, size)
 			for i := 0; i < size; i++ {
 				messages[i] = &Message{
@@ -953,14 +912,13 @@ func BenchmarkBatchMessage_Encode(b *testing.B) {
 	}
 }
 
-// BenchmarkBatchMessage_Decode 基准测试解码性能
 func BenchmarkBatchMessage_Decode(b *testing.B) {
-	// 创建不同大小的批量消息进行基准测试
+
 	sizes := []int{1, 10, 100, 1000}
 
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
-			// 准备测试数据
+
 			messages := make([]*Message, size)
 			for i := 0; i < size; i++ {
 				messages[i] = &Message{
@@ -976,7 +934,6 @@ func BenchmarkBatchMessage_Decode(b *testing.B) {
 				Count:    uint32(size),
 			}
 
-			// 预先编码
 			data, err := batchMsg.Encode()
 			if err != nil {
 				b.Fatal(err)
@@ -994,9 +951,8 @@ func BenchmarkBatchMessage_Decode(b *testing.B) {
 	}
 }
 
-// BenchmarkBatchMessage_EncodeDecodeRoundtrip 基准测试完整的编码解码往返
 func BenchmarkBatchMessage_EncodeDecodeRoundtrip(b *testing.B) {
-	// 创建测试数据
+
 	messages := make([]*Message, 50)
 	for i := 0; i < 50; i++ {
 		messages[i] = &Message{
@@ -1014,13 +970,12 @@ func BenchmarkBatchMessage_EncodeDecodeRoundtrip(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// 编码
+
 		data, err := batchMsg.Encode()
 		if err != nil {
 			b.Fatal(err)
 		}
 
-		// 解码
 		var result BatchMessage
 		err = result.Decode(data)
 		if err != nil {
