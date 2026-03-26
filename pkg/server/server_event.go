@@ -4,59 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"time"
 
 	"btaskee-quiz/pkg/log"
 	"btaskee-quiz/pkg/server/proto"
+
 	"github.com/panjf2000/gnet/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
-
-func (s *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
-
-	if s.opts.LogDetailOn {
-		s.Info("OnTraffic...", zap.String("addr", c.RemoteAddr().String()))
-	}
-	if c.InboundBuffered() == 0 {
-		return
-	}
-	batchCount := 0
-	for i := 0; i < s.batchRead; i++ {
-		data, msgType, _, err := s.proto.Decode(c)
-		if err == io.ErrShortBuffer {
-			if s.opts.LogDetailOn {
-				s.Info("err short buffer", zap.Error(err))
-			}
-			break
-		}
-		if err != nil {
-			s.Foucs("decode error,gnet close", zap.Error(err))
-			return gnet.Close
-		}
-
-		if s.opts.LogDetailOn {
-			s.Info("OnTraffic.decode..", zap.Uint8("msgType", uint8(msgType)), zap.Int("data", len(data)))
-		}
-
-		batchCount++
-
-		s.handleMsg(NewGnetConn(c), msgType, data)
-
-	}
-	if batchCount == s.batchRead && c.InboundBuffered() > 0 {
-		if c.InboundBuffered() > 1024*1024 {
-			s.Foucs("server: inbound buffered is too large", zap.Int("buffered", c.InboundBuffered()))
-		}
-		if err := c.Wake(nil); err != nil {
-			s.Foucs("failed to wake up the connection, gnet close", zap.Error(err))
-			return gnet.Close
-		}
-	}
-
-	return
-}
 
 func (s *Server) handleMsg(conn Conn, msgType proto.MsgType, data []byte) {
 	s.Debug("Received message", zap.String("type", msgType.String()), zap.Int("len", len(data)))

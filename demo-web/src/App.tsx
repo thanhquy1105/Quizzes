@@ -33,6 +33,7 @@ export default function App() {
     setErrorMsg(null);
     
     const client = new WkClient('ws://localhost:8082/ws');
+    // const client = new WkClient('ws://localhost:8081');
     try {
       await client.connect();
       clientRef.current = client;

@@ -20,8 +20,9 @@ export class WkClient {
     private ws: WebSocket | null = null;
     private handlers: Map<string, (data: any) => void> = new Map();
     private onMessageCallback: MessageHandler | null = null;
+    private heartbeatInterval: any = null;
 
-    constructor(private url: string) {}
+    constructor(private url: string) { }
 
     connect(): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -30,6 +31,7 @@ export class WkClient {
 
             this.ws.onopen = () => {
                 console.log("Connected to WkServer");
+                this.startHeartbeat();
                 resolve();
             };
 
@@ -45,6 +47,7 @@ export class WkClient {
 
             this.ws.onclose = () => {
                 console.log("Disconnected from WkServer");
+                this.stopHeartbeat();
             };
         });
     }
@@ -52,8 +55,8 @@ export class WkClient {
     private handleData(buffer: ArrayBuffer) {
         const uint8 = new Uint8Array(buffer);
         const view = new DataView(buffer);
-        
-        if (uint8.length < 7) return; 
+
+        if (uint8.length < 7) return;
 
         // Check MAGIC
         for (let i = 0; i < 6; i++) {
@@ -61,7 +64,7 @@ export class WkClient {
         }
 
         const msgType = view.getUint8(6) as MsgType;
-        
+
         if (msgType === MsgType.Heartbeat) {
             if (this.onMessageCallback) this.onMessageCallback(msgType, new Uint8Array(0));
             return;
@@ -88,11 +91,11 @@ export class WkClient {
     private handleMessage(data: Uint8Array) {
         if (data.length < 24) return; // Id(8) + MsgType(4) + Timestamp(8) + ContentLen(4)
         const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-        
+
         // Skip Id(8), MsgType(4), Timestamp(8)
         const contentLen = view.getUint32(20, true);
         const content = data.slice(24, 24 + contentLen);
-        
+
         if (this.onMessageCallback) {
             this.onMessageCallback(MsgType.Message, content);
         }
@@ -101,27 +104,27 @@ export class WkClient {
     private handleResponse(data: Uint8Array) {
         if (data.length < 21) return; // Id(8) + Status(1) + Timestamp(8) + BodyLen(4)
         const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-        
+
         let offset = 0;
         const id = view.getUint32(offset, true) + (view.getUint32(offset + 4, true) * 0x100000000); // Read uint64 as two uint32
         offset += 8;
-        
+
         const status = view.getUint8(offset);
         offset += 1;
-        
+
         const timestamp = view.getUint32(offset, true) + (view.getUint32(offset + 4, true) * 0x100000000);
         offset += 8;
-        
+
         const bodyLen = view.getUint32(offset, true);
         offset += 4;
-        
+
         const bodyBytes = data.slice(offset, offset + bodyLen);
         const body = new TextDecoder().decode(bodyBytes);
-        
+
         let parsedBody = body;
         try {
             parsedBody = JSON.parse(body);
-        } catch(e) {}
+        } catch (e) { }
         console.log(id)
         console.log(status)
         console.log(timestamp)
@@ -166,7 +169,7 @@ export class WkClient {
             const bodyStr = typeof body === 'object' ? JSON.stringify(body) : String(body);
             const bodyBytes = new TextEncoder().encode(bodyStr);
 
-            console.log("request",path,body)
+            console.log("request", path, body)
 
             // Request binary: Id(8) + PathLen(2) + Path + BodyLen(4) + Body (LittleEndian)
             const totalLen = 8 + 2 + pathBytes.length + 4 + bodyBytes.length;
@@ -177,12 +180,12 @@ export class WkClient {
             let offset = 0;
             view.setBigUint64(offset, requestId, true);
             offset += 8;
-            
+
             view.setUint16(offset, pathBytes.length, true);
             offset += 2;
             uint8.set(pathBytes, offset);
             offset += pathBytes.length;
-            
+
             view.setUint32(offset, bodyBytes.length, true);
             offset += 4;
             uint8.set(bodyBytes, offset);
@@ -197,6 +200,22 @@ export class WkClient {
     }
 
     close() {
+        this.stopHeartbeat();
         this.ws?.close();
+    }
+
+    private startHeartbeat() {
+        this.stopHeartbeat(); // Clear existing if any
+        this.heartbeatInterval = setInterval(() => {
+            console.log("Sending heartbeat...");
+            this.send(MsgType.Heartbeat, new Uint8Array(0));
+        }, 30000); // 30 seconds
+    }
+
+    private stopHeartbeat() {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
+        }
     }
 }

@@ -1,21 +1,23 @@
 package quiz
 
 import (
+	"context"
 	"encoding/json"
-	"sort"
 	"sync"
 	"time"
 
+	"btaskee-quiz/internal/config"
 	"btaskee-quiz/pkg/server"
 	"btaskee-quiz/pkg/server/proto"
 
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
 type Participant struct {
 	UID   string      `json:"uid"`
 	Name  string      `json:"name"`
-	Score int         `json:"score"`
+	Score float64     `json:"score"`
 	Conn  server.Conn `json:"-"`
 }
 
@@ -23,51 +25,57 @@ type Session struct {
 	QuizID       string
 	mu           sync.RWMutex
 	Participants map[string]*Participant
+	lb           LeaderboardStore
 }
 
-func NewSession(quizID string) *Session {
+func NewSession(quizID string, lb LeaderboardStore) *Session {
 	return &Session{
 		QuizID:       quizID,
 		Participants: make(map[string]*Participant),
+		lb:           lb,
 	}
 }
 
 func (s *Session) Join(uid, name string, conn server.Conn) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.Participants[uid] = &Participant{
-		UID:   uid,
-		Name:  name,
-		Score: 0,
-		Conn:  conn,
+		UID:  uid,
+		Name: name,
+		Conn: conn,
 	}
+	s.mu.Unlock()
+
+	_ = s.lb.Add(context.Background(), s.QuizID, uid)
 }
 
 func (s *Session) SubmitAnswer(uid string, isCorrect bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if p, ok := s.Participants[uid]; ok {
-		if isCorrect {
-			p.Score += 10
-		}
+	if isCorrect {
+		_ = s.lb.IncrBy(context.Background(), s.QuizID, uid, 10)
 	}
 }
 
 func (s *Session) GetLeaderboard() []*Participant {
+	entries, err := s.lb.GetRanked(context.Background(), s.QuizID)
+	if err != nil {
+		return nil
+	}
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	var list []*Participant
-	for _, p := range s.Participants {
-		list = append(list, p)
+	result := make([]*Participant, 0, len(entries))
+	for _, e := range entries {
+		p, ok := s.Participants[e.UID]
+		if !ok {
+			continue
+		}
+		result = append(result, &Participant{
+			UID:   p.UID,
+			Name:  p.Name,
+			Score: e.Score,
+		})
 	}
-
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].Score > list[j].Score
-	})
-
-	return list
+	return result
 }
 
 func (s *Session) BroadcastLeaderboard() {
@@ -85,47 +93,50 @@ func (s *Session) BroadcastLeaderboard() {
 	defer s.mu.RUnlock()
 
 	for _, p := range s.Participants {
-		if p.Conn != nil {
-
-			msg := &proto.Message{
-				MsgType:   uint32(proto.MsgTypeMessage),
-				Timestamp: uint64(time.Now().UnixMilli()),
-				Content:   data,
-			}
-			msgData, err := msg.Encode()
-			if err == nil {
-				protoEncoding := proto.New()
-				payload, err := protoEncoding.Encode(msgData, proto.MsgTypeMessage)
-				if err == nil {
-					_ = p.Conn.AsyncWrite(payload, nil)
-				}
-			}
+		if p.Conn == nil {
+			continue
+		}
+		msg := &proto.Message{
+			MsgType:   uint32(proto.MsgTypeMessage),
+			Timestamp: uint64(time.Now().UnixMilli()),
+			Content:   data,
+		}
+		msgData, err := msg.Encode()
+		if err != nil {
+			continue
+		}
+		protoEncoding := proto.New()
+		payload, err := protoEncoding.Encode(msgData, proto.MsgTypeMessage)
+		if err == nil {
+			_ = p.Conn.AsyncWrite(payload, nil)
 		}
 	}
 }
 
 type Manager struct {
 	mu       sync.RWMutex
-	Sessions map[string]*Session
+	sessions map[string]*Session
+	lb       LeaderboardStore
 }
 
-func NewManager() *Manager {
+func NewManager(lb LeaderboardStore) *Manager {
 	return &Manager{
-		Sessions: make(map[string]*Session),
+		sessions: make(map[string]*Session),
+		lb:       lb,
 	}
 }
 
 func (m *Manager) GetSession(quizID string) *Session {
 	m.mu.RLock()
-	s, ok := m.Sessions[quizID]
+	s, ok := m.sessions[quizID]
 	m.mu.RUnlock()
 
 	if !ok {
 		m.mu.Lock()
-		s, ok = m.Sessions[quizID]
+		s, ok = m.sessions[quizID]
 		if !ok {
-			s = NewSession(quizID)
-			m.Sessions[quizID] = s
+			s = NewSession(quizID, m.lb)
+			m.sessions[quizID] = s
 		}
 		m.mu.Unlock()
 	}
@@ -137,10 +148,24 @@ type QuizServer struct {
 	Manager *Manager
 }
 
-func NewQuizServer(addr string) *QuizServer {
+func NewQuizServer(cfg *config.Config) *QuizServer {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     cfg.Redis.Addr,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
+	lb := NewRedisLeaderboard(rdb)
 	s := &QuizServer{
-		Server:  server.New(addr, server.WithWSAddr("ws://0.0.0.0:8081"), server.WithGorillaWSAddr("0.0.0.0:8082")),
-		Manager: NewManager(),
+		Server: server.New(cfg.Server.TCPAddr,
+			server.WithWSAddr(cfg.Server.WSAddr),
+			server.WithGorillaWSAddr(cfg.Server.GorillaWSAddr),
+			server.WithRequestPoolSize(cfg.Server.RequestPoolSize),
+			server.WithMessagePoolSize(cfg.Server.MessagePoolSize),
+			server.WithMaxIdle(cfg.Server.MaxIdle),
+			server.WithRequestTimeout(cfg.Server.RequestTimeout),
+			server.WithLogDetail(cfg.Server.LogDetail),
+		),
+		Manager: NewManager(lb),
 	}
 	s.registerRoutes()
 	return s

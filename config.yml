@@ -1,0 +1,14 @@
+server:
+  tcp_addr: "tcp://0.0.0.0:8080"
+  ws_addr: "ws://0.0.0.0:8081"
+  gorilla_ws_addr: "0.0.0.0:8082"
+  request_pool_size: 20000
+  message_pool_size: 40000
+  request_timeout: "10s"
+  max_idle: "120s"
+  log_detail: true
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0

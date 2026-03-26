@@ -77,3 +77,33 @@ func WithOnMessage(onMessage func(conn Conn, msg *proto.Message)) Option {
 		o.OnMessage = onMessage
 	}
 }
+
+func WithRequestPoolSize(size int) Option {
+	return func(o *Options) {
+		o.RequestPoolSize = size
+	}
+}
+
+func WithMessagePoolSize(size int) Option {
+	return func(o *Options) {
+		o.MessagePoolSize = size
+	}
+}
+
+func WithMaxIdle(d time.Duration) Option {
+	return func(o *Options) {
+		o.MaxIdle = d
+	}
+}
+
+func WithRequestTimeout(d time.Duration) Option {
+	return func(o *Options) {
+		o.RequestTimeout = d
+	}
+}
+
+func WithLogDetail(on bool) Option {
+	return func(o *Options) {
+		o.LogDetailOn = on
+	}
+}
