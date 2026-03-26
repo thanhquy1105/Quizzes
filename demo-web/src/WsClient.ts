@@ -11,12 +11,17 @@ export enum MsgType {
     BatchMessage = 7,
 }
 
-const MAGIC = "WUKONG";
+const MAGIC = "BTASKEE";
 const MAGIC_BYTES = new TextEncoder().encode(MAGIC);
+const MAGIC_LEN = MAGIC_BYTES.length;
+const TYPE_LEN = 1;
+const CONTENT_LEN = 4;
+const HEADER_MIN_LEN = MAGIC_LEN + TYPE_LEN;
+const HEADER_FULL_LEN = MAGIC_LEN + TYPE_LEN + CONTENT_LEN;
 
 export type MessageHandler = (msgType: MsgType, data: Uint8Array) => void;
 
-export class WkClient {
+export class WsClient {
     private ws: WebSocket | null = null;
     private handlers: Map<string, (data: any) => void> = new Map();
     private onMessageCallback: MessageHandler | null = null;
@@ -30,7 +35,7 @@ export class WkClient {
             this.ws.binaryType = "arraybuffer";
 
             this.ws.onopen = () => {
-                console.log("Connected to WkServer");
+                console.log("Connected to WsServer");
                 this.startHeartbeat();
                 resolve();
             };
@@ -46,7 +51,7 @@ export class WkClient {
             };
 
             this.ws.onclose = () => {
-                console.log("Disconnected from WkServer");
+                console.log("Disconnected from WsServer");
                 this.stopHeartbeat();
             };
         });
@@ -56,23 +61,23 @@ export class WkClient {
         const uint8 = new Uint8Array(buffer);
         const view = new DataView(buffer);
 
-        if (uint8.length < 7) return;
+        if (uint8.length < HEADER_MIN_LEN) return;
 
         // Check MAGIC
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < MAGIC_LEN; i++) {
             if (uint8[i] !== MAGIC_BYTES[i]) return;
         }
 
-        const msgType = view.getUint8(6) as MsgType;
+        const msgType = view.getUint8(MAGIC_LEN) as MsgType;
 
         if (msgType === MsgType.Heartbeat) {
             if (this.onMessageCallback) this.onMessageCallback(msgType, new Uint8Array(0));
             return;
         }
 
-        if (uint8.length < 11) return;
-        const dataLen = view.getUint32(7, false); // Big Endian in protocol envelope
-        const data = uint8.slice(11, 11 + dataLen);
+        if (uint8.length < HEADER_FULL_LEN) return;
+        const dataLen = view.getUint32(MAGIC_LEN + TYPE_LEN, false); // Big Endian in protocol envelope
+        const data = uint8.slice(HEADER_FULL_LEN, HEADER_FULL_LEN + dataLen);
 
         if (msgType === MsgType.Resp) {
             this.handleResponse(data);
@@ -141,23 +146,23 @@ export class WkClient {
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
 
         if (msgType === MsgType.Heartbeat) {
-            const buffer = new ArrayBuffer(7);
+            const buffer = new ArrayBuffer(HEADER_MIN_LEN);
             const uint8 = new Uint8Array(buffer);
             uint8.set(MAGIC_BYTES, 0);
-            uint8[6] = msgType;
+            uint8[MAGIC_LEN] = msgType;
             this.ws.send(buffer);
             return;
         }
 
-        const totalLen = 6 + 1 + 4 + payload.length;
+        const totalLen = HEADER_FULL_LEN + payload.length;
         const buffer = new ArrayBuffer(totalLen);
         const view = new DataView(buffer);
         const uint8 = new Uint8Array(buffer);
 
         uint8.set(MAGIC_BYTES, 0);
-        view.setUint8(6, msgType);
-        view.setUint32(7, payload.length, false); // Big Endian in envelope
-        uint8.set(payload, 11);
+        view.setUint8(MAGIC_LEN, msgType);
+        view.setUint32(MAGIC_LEN + TYPE_LEN, payload.length, false); // Big Endian in envelope
+        uint8.set(payload, HEADER_FULL_LEN);
 
         this.ws.send(buffer);
     }

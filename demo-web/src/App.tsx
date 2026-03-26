@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { WkClient, MsgType } from './WkClient';
+import { WsClient, MsgType } from './WsClient';
 import { Trophy, Users, Send, Zap, LogIn, Crown, Activity, AlertCircle, RefreshCw } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -24,7 +24,7 @@ export default function App() {
   const [status, setStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
-  const clientRef = useRef<WkClient | null>(null);
+  const clientRef = useRef<WsClient | null>(null);
 
   const connect = useCallback(async () => {
     if (!name) return;
@@ -32,8 +32,8 @@ export default function App() {
     setStatus('connecting');
     setErrorMsg(null);
     
-    const client = new WkClient('ws://localhost:8082/ws');
-    // const client = new WkClient('ws://localhost:8081');
+    const client = new WsClient('ws://localhost:8082/ws');
+    // const client = new WsClient('ws://localhost:8081');
     try {
       await client.connect();
       clientRef.current = client;

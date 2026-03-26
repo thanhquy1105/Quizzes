@@ -30,7 +30,7 @@ const (
 )
 
 var (
-	MagicNumberStart       = []byte{'W', 'U', 'K', 'O', 'N', 'G'}
+	MagicNumberStart       = []byte("BTASKEE")
 	MagicNumberStartLength = len(MagicNumberStart)
 )
 
