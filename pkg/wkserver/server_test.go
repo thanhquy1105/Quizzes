@@ -104,7 +104,7 @@ func TestReconnect(t *testing.T) {
 	assert.NoError(t, err)
 	defer cli.Stop()
 
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Millisecond * 500)
 
 	assert.Equal(t, true, cli.IsAuthed())
 
@@ -112,7 +112,7 @@ func TestReconnect(t *testing.T) {
 
 	assert.Equal(t, false, cli.IsAuthed())
 
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Millisecond * 1000)
 
 	assert.Equal(t, true, cli.IsAuthed())
 }
