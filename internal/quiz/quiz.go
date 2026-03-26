@@ -9,6 +9,9 @@ import (
 	"btaskee-quiz/internal/config"
 	"btaskee-quiz/pkg/server"
 	"btaskee-quiz/pkg/server/proto"
+	"btaskee-quiz/internal/repository"
+	redisrepo "btaskee-quiz/internal/repository/redis"
+	mysqlrepo "btaskee-quiz/internal/repository/mysql"
 
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
@@ -25,10 +28,10 @@ type Session struct {
 	QuizID       string
 	mu           sync.RWMutex
 	Participants map[string]*Participant
-	lb           LeaderboardStore
+	lb           repository.LeaderboardStore
 }
 
-func NewSession(quizID string, lb LeaderboardStore) *Session {
+func NewSession(quizID string, lb repository.LeaderboardStore) *Session {
 	return &Session{
 		QuizID:       quizID,
 		Participants: make(map[string]*Participant),
@@ -116,10 +119,10 @@ func (s *Session) BroadcastLeaderboard() {
 type Manager struct {
 	mu       sync.RWMutex
 	sessions map[string]*Session
-	lb       LeaderboardStore
+	lb       repository.LeaderboardStore
 }
 
-func NewManager(lb LeaderboardStore) *Manager {
+func NewManager(lb repository.LeaderboardStore) *Manager {
 	return &Manager{
 		sessions: make(map[string]*Session),
 		lb:       lb,
@@ -154,7 +157,16 @@ func NewQuizServer(cfg *config.Config) *QuizServer {
 		Password: cfg.Redis.Password,
 		DB:       cfg.Redis.DB,
 	})
-	lb := NewRedisLeaderboard(rdb)
+	lb := redisrepo.NewLeaderboardStore(rdb)
+
+	db, err := mysqlrepo.NewDB(&cfg.MySQL)
+	if err != nil {
+		// Log error but maybe continue if MySQL is optional
+		zap.L().Error("failed to connect to mysql", zap.Error(err))
+	}
+	userStore := mysqlrepo.NewUserStore(db)
+	_ = userStore // UserStore available for future use
+
 	s := &QuizServer{
 		Server: server.New(cfg.Server.TCPAddr,
 			server.WithWSAddr(cfg.Server.WSAddr),

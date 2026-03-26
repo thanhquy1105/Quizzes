@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Server ServerConfig `yaml:"server"`
 	Redis  RedisConfig  `yaml:"redis"`
+	MySQL  MySQLConfig  `yaml:"mysql"`
 }
 
 type ServerConfig struct {
@@ -27,6 +28,13 @@ type RedisConfig struct {
 	Addr     string `yaml:"addr"`
 	Password string `yaml:"password"`
 	DB       int    `yaml:"db"`
+}
+
+type MySQLConfig struct {
+	Addr     string `yaml:"addr"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	DBName   string `yaml:"db_name"`
 }
 
 func Load(path string) (*Config, error) {

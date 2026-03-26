@@ -12,3 +12,8 @@ redis:
   addr: "localhost:6379"
   password: ""
   db: 0
+mysql:
+  addr: "localhost:3306"
+  user: "root"
+  password: "my-secret-pw"
+  db_name: "btaskee_quiz"
