@@ -193,6 +193,7 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 
 	session := s.Manager.GetSession(req.QuizID)
 	session.Join(req.UID, req.Name, ctx.Conn())
+	s.Server.Metrics().JoinQuizInc()
 
 	s.Server.Debug("handleJoin: session joined, writing OK", zap.String("uid", req.UID))
 	ctx.WriteOk()
@@ -217,6 +218,7 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 
 	session := s.Manager.GetSession(req.QuizID)
 	session.SubmitAnswer(req.UID, req.IsCorrect)
+	s.Server.Metrics().AnswerQuizInc()
 
 	ctx.WriteOk()
 

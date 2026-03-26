@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/panjf2000/gnet/v2"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
@@ -91,6 +92,7 @@ func (w *wsBufferReader) Discard(n int) (int, error) {
 func (s *Server) StartGorillaWS() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", s.handleGorillaWS)
+	mux.Handle("/metrics", promhttp.Handler())
 
 	s.gorillaServer = &http.Server{
 		Addr:    s.opts.GorillaWSAddr,
@@ -117,9 +119,11 @@ func (s *Server) handleGorillaWS(w http.ResponseWriter, r *http.Request) {
 		ws: ws,
 	}
 
+	s.metrics.ActiveConnInc()
 	defer func() {
 		_ = conn.Close()
 		s.onClose(conn)
+		s.metrics.ActiveConnDec()
 	}()
 
 	if s.opts.MaxIdle > 0 {

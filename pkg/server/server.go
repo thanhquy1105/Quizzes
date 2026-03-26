@@ -37,7 +37,7 @@ type Server struct {
 	reqIDGen    atomic.Uint64
 	w           wait.Wait
 	connManager *ConnManager
-	metrics     *metrics
+	metrics     *Metrics
 
 	timingWheel *timingwheel.TimingWheel
 
@@ -123,7 +123,7 @@ func (s *Server) Start() error {
 	s.timingWheel.Start()
 
 	s.Schedule(time.Minute*1, func() {
-		s.metrics.printMetrics(fmt.Sprintf("Server:%s", s.opts.Addr))
+		s.metrics.PrintMetrics(fmt.Sprintf("Server:%s", s.opts.Addr))
 	})
 
 	errChan := make(chan error, 1)
@@ -213,12 +213,13 @@ func (s *Server) RequestPoolRunning() int {
 	return s.requestPool.Running()
 }
 
-func (s *Server) MessagePoolRunning() int {
-	return s.messagePool.Running()
+func (s *Server) Metrics() *Metrics {
+	return s.metrics
 }
 
 func (s *Server) onWSConnect(conn net.Conn) error {
 	conn.SetMaxIdle(time.Second * 120)
+	s.metrics.ActiveConnInc()
 	return nil
 }
 
@@ -229,6 +230,7 @@ func (s *Server) onWSData(conn net.Conn) error {
 
 func (s *Server) onWSClose(conn net.Conn) {
 	s.onClose(NewNetConn(conn))
+	s.metrics.ActiveConnDec()
 }
 
 func (s *Server) onTraffic(c Conn) {

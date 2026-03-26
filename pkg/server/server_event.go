@@ -16,25 +16,29 @@ import (
 
 func (s *Server) handleMsg(conn Conn, msgType proto.MsgType, data []byte) {
 	s.Debug("Received message", zap.String("type", msgType.String()), zap.Int("len", len(data)))
-	s.metrics.recvMsgBytesAdd(uint64(len(data)))
-	s.metrics.recvMsgCountAdd(1)
+	s.metrics.RecvMsgBytesAdd(uint64(len(data)))
+	s.metrics.RecvMsgCountAdd(1)
 
-	if msgType == proto.MsgTypeHeartbeat {
+	switch msgType {
+	case proto.MsgTypeHeartbeat:
 		s.handleHeartbeat(conn)
-	} else if msgType == proto.MsgTypeConnect {
+
+	case proto.MsgTypeConnect:
 		req := &proto.Connect{}
 		err := req.Unmarshal(data)
 		if err != nil {
 			s.Error("unmarshal connack error", zap.Error(err))
+			s.metrics.ErrInc()
 			return
 		}
 		s.handleConnack(conn, req)
-	} else if msgType == proto.MsgTypeRequest {
 
+	case proto.MsgTypeRequest:
 		req := s.requestObjPool.Get().(*proto.Request)
 		err := req.Unmarshal(data)
 		if err != nil {
 			s.Error("unmarshal request error", zap.Error(err))
+			s.metrics.ErrInc()
 			return
 		}
 
@@ -50,8 +54,7 @@ func (s *Server) handleMsg(conn Conn, msgType proto.MsgType, data []byte) {
 		if err != nil {
 			s.Error("submit request error", zap.Error(err))
 		}
-	} else if msgType == proto.MsgTypeResp {
-
+	case proto.MsgTypeResp:
 		resp := &proto.Response{}
 		err := resp.Unmarshal(data)
 		if err != nil {
@@ -59,8 +62,7 @@ func (s *Server) handleMsg(conn Conn, msgType proto.MsgType, data []byte) {
 			return
 		}
 		s.handleResp(conn, resp)
-	} else if msgType == proto.MsgTypeMessage {
-
+	case proto.MsgTypeMessage:
 		msg := &proto.Message{}
 		err := msg.Unmarshal(data)
 		if err != nil {
@@ -76,10 +78,10 @@ func (s *Server) handleMsg(conn Conn, msgType proto.MsgType, data []byte) {
 			s.handleMessage(conn, msg)
 		}
 
-	} else if msgType == proto.MsgTypeBatchMessage {
-
+	case proto.MsgTypeBatchMessage:
 		s.handleBatchMessage(conn, data)
-	} else {
+
+	default:
 		s.Error("unknown msg type", zap.Uint8("msgType", msgType.Uint8()))
 	}
 }
@@ -140,6 +142,7 @@ func (s *Server) handleBatchMessage(conn Conn, data []byte) {
 	err := batchMsg.Decode(data)
 	if err != nil {
 		s.Error("Failed to decode batch message", zap.Error(err))
+		s.metrics.ErrInc()
 		return
 	}
 
@@ -149,7 +152,7 @@ func (s *Server) handleBatchMessage(conn Conn, data []byte) {
 			zap.Int("totalSize", len(data)))
 	}
 
-	s.metrics.recvMsgCountAdd(uint64(batchMsg.Count - 1))
+	s.metrics.RecvMsgCountAdd(uint64(batchMsg.Count - 1))
 
 	for i, msg := range batchMsg.Messages {
 		if msg == nil {
