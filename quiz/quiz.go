@@ -6,16 +6,17 @@ import (
 	"sync"
 	"time"
 
-	"btaskee-quiz/pkg/wkserver"
-	"btaskee-quiz/pkg/wkserver/proto"
+	"btaskee-quiz/pkg/server"
+	"btaskee-quiz/pkg/server/proto"
+
 	"go.uber.org/zap"
 )
 
 type Participant struct {
-	UID   string        `json:"uid"`
-	Name  string        `json:"name"`
-	Score int           `json:"score"`
-	Conn  wkserver.Conn `json:"-"`
+	UID   string      `json:"uid"`
+	Name  string      `json:"name"`
+	Score int         `json:"score"`
+	Conn  server.Conn `json:"-"`
 }
 
 type Session struct {
@@ -31,7 +32,7 @@ func NewSession(quizID string) *Session {
 	}
 }
 
-func (s *Session) Join(uid, name string, conn wkserver.Conn) {
+func (s *Session) Join(uid, name string, conn server.Conn) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.Participants[uid] = &Participant{
@@ -132,22 +133,22 @@ func (m *Manager) GetSession(quizID string) *Session {
 }
 
 type QuizServer struct {
-	WkServer *wkserver.Server
-	Manager  *Manager
+	Server  *server.Server
+	Manager *Manager
 }
 
 func NewQuizServer(addr string) *QuizServer {
 	s := &QuizServer{
-		WkServer: wkserver.New(addr, wkserver.WithWSAddr("ws://0.0.0.0:8081")),
-		Manager:  NewManager(),
+		Server:  server.New(addr, server.WithWSAddr("ws://0.0.0.0:8081")),
+		Manager: NewManager(),
 	}
 	s.registerRoutes()
 	return s
 }
 
 func (s *QuizServer) registerRoutes() {
-	s.WkServer.Route("/join", s.handleJoin)
-	s.WkServer.Route("/answer", s.handleAnswer)
+	s.Server.Route("/join", s.handleJoin)
+	s.Server.Route("/answer", s.handleAnswer)
 }
 
 type JoinReq struct {
@@ -156,11 +157,11 @@ type JoinReq struct {
 	Name   string `json:"name"`
 }
 
-func (s *QuizServer) handleJoin(ctx *wkserver.Context) {
-	s.WkServer.Debug("handleJoin started", zap.String("body", string(ctx.Body())))
+func (s *QuizServer) handleJoin(ctx *server.Context) {
+	s.Server.Debug("handleJoin started", zap.String("body", string(ctx.Body())))
 	var req JoinReq
 	if err := json.Unmarshal(ctx.Body(), &req); err != nil {
-		s.WkServer.Error("handleJoin unmarshal error", zap.Error(err))
+		s.Server.Error("handleJoin unmarshal error", zap.Error(err))
 		ctx.WriteErr(err)
 		return
 	}
@@ -168,12 +169,12 @@ func (s *QuizServer) handleJoin(ctx *wkserver.Context) {
 	session := s.Manager.GetSession(req.QuizID)
 	session.Join(req.UID, req.Name, ctx.Conn())
 
-	s.WkServer.Debug("handleJoin: session joined, writing OK", zap.String("uid", req.UID))
+	s.Server.Debug("handleJoin: session joined, writing OK", zap.String("uid", req.UID))
 	ctx.WriteOk()
 
-	s.WkServer.Debug("handleJoin: broadcasting leaderboard")
+	s.Server.Debug("handleJoin: broadcasting leaderboard")
 	session.BroadcastLeaderboard()
-	s.WkServer.Debug("handleJoin finished")
+	s.Server.Debug("handleJoin finished")
 }
 
 type AnswerReq struct {
@@ -182,7 +183,7 @@ type AnswerReq struct {
 	IsCorrect bool   `json:"is_correct"`
 }
 
-func (s *QuizServer) handleAnswer(ctx *wkserver.Context) {
+func (s *QuizServer) handleAnswer(ctx *server.Context) {
 	var req AnswerReq
 	if err := json.Unmarshal(ctx.Body(), &req); err != nil {
 		ctx.WriteErr(err)
@@ -198,5 +199,5 @@ func (s *QuizServer) handleAnswer(ctx *wkserver.Context) {
 }
 
 func (s *QuizServer) Start() error {
-	return s.WkServer.Start()
+	return s.Server.Start()
 }

@@ -1,6 +1,6 @@
 # Real-Time Quiz Application Demo
 
-This project demonstrates a real-time quiz feature using a Go-based server (`wkserver`) and a ReactJS frontend connected via WebSockets using a custom binary protocol.
+This project demonstrates a real-time quiz feature using a Go-based server (`server`) and a ReactJS frontend connected via WebSockets using a custom binary protocol.
 
 ## Features
 - **Real-time Scoring**: Points are updated instantly across all participants.
@@ -28,6 +28,6 @@ npm run dev
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ## Technical Details
-- **Backend**: Built with `gnet` (TCP) and `wknet` (WS).
+- **Backend**: Built with `gnet` (TCP) and `net` (WS).
 - **Frontend**: Built with Vite, React, TypeScript, and Tailwind CSS.
 - **Protocol**: Binary framing with Magic Number `WUKONG`.

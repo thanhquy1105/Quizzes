@@ -26,5 +26,5 @@ func main() {
 
 	fmt.Println("Shutting down Quiz Server...")
 
-	server.WkServer.Stop()
+	server.Server.Stop()
 }
