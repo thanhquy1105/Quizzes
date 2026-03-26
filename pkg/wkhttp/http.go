@@ -27,20 +27,6 @@ func New() *WKHttp {
 	return l
 }
 
-func NewWithLogger(loggerHandler HandlerFunc) *WKHttp {
-	l := &WKHttp{
-		r:    gin.New(),
-		pool: sync.Pool{},
-	}
-	l.r.Use(l.LMHttpHandler(loggerHandler))
-	l.r.Use(gin.Recovery())
-	l.r.SetTrustedProxies(nil)
-	l.pool.New = func() interface{} {
-		return allocateContext()
-	}
-	return l
-}
-
 func (l *WKHttp) GetGinRoute() *gin.Engine {
 	return l.r
 }
@@ -202,21 +188,4 @@ func (l *WKHttp) handlersToGinHandleFunc(handlers []HandlerFunc) []gin.HandlerFu
 		newHandlers = append(newHandlers, l.LMHttpHandler(handler))
 	}
 	return newHandlers
-}
-
-func CORSMiddleware() HandlerFunc {
-
-	return func(c *Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Content-Length, Accept-Encoding, X-CSRF-Token, token, accept, origin, Cache-Control, X-Requested-With, appid, noncestr, sign, timestamp")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT,DELETE,PATCH")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	}
 }

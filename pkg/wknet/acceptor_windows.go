@@ -18,19 +18,6 @@ type Acceptor struct {
 	listenWSS *listener
 }
 
-func NewAcceptor(eg *Engine) *Acceptor {
-	reactorSubs := make([]*ReactorSub, eg.options.SubReactorNum)
-	for i := 0; i < eg.options.SubReactorNum; i++ {
-		reactorSubs[i] = NewReactorSub(eg, i)
-	}
-	a := &Acceptor{
-		eg:          eg,
-		reactorSubs: reactorSubs,
-		Log:         wklog.NewWKLog("Acceptor"),
-	}
-	return a
-}
-
 func (a *Acceptor) Start() error {
 	return a.start()
 }

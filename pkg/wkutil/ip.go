@@ -1,90 +1,9 @@
 package wkutil
 
 import (
-	"errors"
-	"io"
-	"net"
-	"net/http"
 	"strconv"
 	"strings"
 )
-
-func GetExternalIP() (string, error) {
-	resp, err := http.Get("https://ifconfig.io/ip")
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	resultBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return "", errors.New("get external ip failed")
-
-	}
-	resultStr := string(resultBytes)
-	if len(resultStr) > 15 {
-		return "", errors.New("get external ip failed")
-
-	}
-	return strings.TrimSpace(string(resultBytes)), nil
-}
-
-func GetIntranetIP() (ips []string, err error) {
-	ips = make([]string, 0)
-
-	ifaces, e := net.Interfaces()
-	if e != nil {
-		return ips, e
-	}
-
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 {
-			continue
-		}
-
-		if iface.Flags&net.FlagLoopback != 0 {
-			continue
-		}
-
-		if strings.HasPrefix(iface.Name, "docker") || strings.HasPrefix(iface.Name, "w-") {
-			continue
-		}
-
-		addrs, e := iface.Addrs()
-		if e != nil {
-			return ips, e
-		}
-
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-
-			if ip == nil || ip.IsLoopback() {
-				continue
-			}
-
-			ip = ip.To4()
-			if ip == nil {
-				continue
-			}
-
-			ipStr := ip.String()
-			if IsIntranet(ipStr) {
-				ips = append(ips, ipStr)
-			}
-		}
-	}
-
-	return ips, nil
-}
 
 func IsIntranet(ipStr string) bool {
 	if strings.HasPrefix(ipStr, "10.") || strings.HasPrefix(ipStr, "192.168.") {

@@ -5,13 +5,6 @@ type FIFO struct {
 	size int
 }
 
-func NewFIFO(size int) *FIFO {
-	return &FIFO{
-		data: make([]int, 0, size),
-		size: size,
-	}
-}
-
 func (f *FIFO) Push(val int) {
 	if len(f.data) == f.size {
 		f.data = f.data[1:]

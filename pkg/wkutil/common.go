@@ -2,40 +2,8 @@ package wkutil
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
-	"math"
-	"math/rand"
-	"strconv"
-	"strings"
-	"time"
 )
-
-func BoolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
-}
-
-func IntToBool(b int) bool {
-	if b == 1 {
-		return true
-	}
-	return false
-}
-
-func BoolToUint8(b bool) uint8 {
-	if b {
-		return 1
-	}
-	return 0
-}
-
-func Uint8ToBool(b uint8) bool {
-
-	return b == 1
-}
 
 func ToJSON(obj interface{}) string {
 	jsonData, err := json.Marshal(obj)
@@ -44,12 +12,6 @@ func ToJSON(obj interface{}) string {
 	}
 
 	return string(jsonData)
-}
-
-func JSONToMap(json string) (map[string]interface{}, error) {
-	var resultMap map[string]interface{}
-	err := ReadJSONByByte([]byte(json), &resultMap)
-	return resultMap, err
 }
 
 func ReadJSONByByte(body []byte, obj interface{}) error {
@@ -128,23 +90,6 @@ var tenToAny map[int]string = map[int]string{
 	60: "Y",
 	61: "Z"}
 
-func DecimalToAny(num int64, n int) string {
-	newNumStr := ""
-	var remainder int64
-	var remainderString string
-	for num != 0 {
-		remainder = num % int64(n)
-		if 76 > remainder && remainder > 9 {
-			remainderString = tenToAny[int(remainder)]
-		} else {
-			remainderString = strconv.Itoa(int(remainder))
-		}
-		newNumStr = remainderString + newNumStr
-		num = num / int64(n)
-	}
-	return newNumStr
-}
-
 func findKey(in string) int {
 	result := -1
 	for k, v := range tenToAny {
@@ -153,33 +98,6 @@ func findKey(in string) int {
 		}
 	}
 	return result
-}
-
-func AnyToDecimal(num string, n int) int64 {
-	var newNum float64
-	newNum = 0.0
-	nNum := len(strings.Split(num, "")) - 1
-	for _, value := range strings.Split(num, "") {
-		tmp := float64(findKey(value))
-		if tmp != -1 {
-			newNum = newNum + tmp*math.Pow(float64(n), float64(nNum))
-			nNum = nNum - 1
-		} else {
-			break
-		}
-	}
-	return int64(newNum)
-}
-
-func GetRandomString(num int) string {
-	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	bytes := []byte(str)
-	result := []byte{}
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for i := 0; i < num; i++ {
-		result = append(result, bytes[r.Intn(len(bytes))])
-	}
-	return string(result)
 }
 
 func RemoveRepeatedElement(arr []string) []string {
@@ -198,34 +116,4 @@ func RemoveRepeatedElement(arr []string) []string {
 	}
 
 	return result
-}
-
-func RemoveRepeatedElementOfUint64(arr []uint64) []uint64 {
-	if len(arr) == 0 {
-		return arr
-	}
-
-	seen := make(map[uint64]bool, len(arr))
-	result := make([]uint64, 0, len(arr))
-
-	for _, item := range arr {
-		if !seen[item] {
-			seen[item] = true
-			result = append(result, item)
-		}
-	}
-
-	return result
-}
-
-func Uint32ArrayToStringArray(arr []uint32) (newArr []string) {
-	newArr = make([]string, 0)
-	for _, v := range arr {
-		newArr = append(newArr, strconv.Itoa(int(v)))
-	}
-	return
-}
-
-func Base64Decode(str string) ([]byte, error) {
-	return base64.StdEncoding.DecodeString(str)
 }

@@ -25,48 +25,12 @@ func SetSendBuffer(fd, size int) error {
 	return unix.SetsockoptInt(fd, unix.SOL_SOCKET, unix.SO_SNDBUF, size)
 }
 
-func SetReuseport(fd, reusePort int) error {
-	return os.NewSyscallError("setsockopt", unix.SetsockoptInt(fd, unix.SOL_SOCKET, unix.SO_REUSEPORT, reusePort))
-}
-
 func SetReuseAddr(fd, reuseAddr int) error {
 	return os.NewSyscallError("setsockopt", unix.SetsockoptInt(fd, unix.SOL_SOCKET, unix.SO_REUSEADDR, reuseAddr))
 }
 
 func SetIPv6Only(fd, ipv6only int) error {
 	return unix.SetsockoptInt(fd, unix.IPPROTO_IPV6, unix.IPV6_V6ONLY, ipv6only)
-}
-
-func SetLinger(fd, sec int) error {
-	var l unix.Linger
-	if sec >= 0 {
-		l.Onoff = 1
-		l.Linger = int32(sec)
-	} else {
-		l.Onoff = 0
-		l.Linger = 0
-	}
-	return unix.SetsockoptLinger(fd, syscall.SOL_SOCKET, syscall.SO_LINGER, &l)
-}
-
-func SetMulticastMembership(proto string, udpAddr *net.UDPAddr) func(int, int) error {
-	udpVersion, err := determineUDPProto(proto, udpAddr)
-	if err != nil {
-		return nil
-	}
-
-	switch udpVersion {
-	case "udp4":
-		return func(fd int, ifIndex int) error {
-			return SetIPv4MulticastMembership(fd, udpAddr.IP, ifIndex)
-		}
-	case "udp6":
-		return func(fd int, ifIndex int) error {
-			return SetIPv6MulticastMembership(fd, udpAddr.IP, ifIndex)
-		}
-	default:
-		return nil
-	}
 }
 
 func SetIPv4MulticastMembership(fd int, mcast net.IP, ifIndex int) error {

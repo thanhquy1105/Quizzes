@@ -5,17 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"
-
-	"github.com/valyala/bytebufferpool"
 )
-
-func AesEncryptSimple(origData []byte, key string, iv string) ([]byte, error) {
-	return AesDecryptPkcs5(origData, []byte(key), []byte(iv))
-}
-
-func AesEncryptPkcs5(origData []byte, key []byte, iv []byte) ([]byte, error) {
-	return AesEncrypt(origData, key, iv, PKCS5Padding)
-}
 
 func AesEncryptPkcs7(origData []byte, key []byte, iv []byte) ([]byte, error) {
 	return AesEncrypt(origData, key, iv, PKCS7Padding)
@@ -28,25 +18,6 @@ func AesEncryptPkcs7Base64(origData []byte, key []byte, iv []byte) ([]byte, erro
 	}
 	dataStr := base64.StdEncoding.EncodeToString(data)
 	return []byte(dataStr), nil
-}
-
-func AesEncryptPkcs7Base64ForPool(origData []byte, key []byte, iv []byte, resultBuff *bytebufferpool.ByteBuffer) error {
-
-	data, err := AesEncrypt(origData, key, iv, PKCS7Padding)
-	if err != nil {
-		return err
-	}
-
-	encodedSize := base64.StdEncoding.EncodedLen(len(data))
-	if cap(resultBuff.B) < encodedSize {
-		resultBuff.B = make([]byte, encodedSize)
-	} else {
-		resultBuff.B = resultBuff.B[:encodedSize]
-	}
-
-	base64.StdEncoding.Encode(resultBuff.B, data)
-
-	return nil
 }
 
 func AesEncrypt(origData []byte, key []byte, iv []byte, paddingFunc func([]byte, int) []byte) ([]byte, error) {
@@ -63,24 +34,12 @@ func AesEncrypt(origData []byte, key []byte, iv []byte, paddingFunc func([]byte,
 	return crypted, nil
 }
 
-func AesDecryptSimple(crypted []byte, key string, iv string) ([]byte, error) {
-	return AesDecryptPkcs5(crypted, []byte(key), []byte(iv))
-}
-
 func AesDecryptPkcs5(crypted []byte, key []byte, iv []byte) ([]byte, error) {
 	return AesDecrypt(crypted, key, iv, PKCS5UnPadding)
 }
 
 func AesDecryptPkcs7(crypted []byte, key []byte, iv []byte) ([]byte, error) {
 	return AesDecrypt(crypted, key, iv, PKCS7UnPadding)
-}
-
-func AesDecryptPkcs7Base64(crypted []byte, key []byte, iv []byte) ([]byte, error) {
-	cryptedData, err := base64.StdEncoding.DecodeString(string(crypted))
-	if err != nil {
-		return nil, err
-	}
-	return AesDecrypt(cryptedData, key, iv, PKCS7UnPadding)
 }
 
 func AesDecrypt(crypted, key []byte, iv []byte, unPaddingFunc func([]byte) []byte) ([]byte, error) {

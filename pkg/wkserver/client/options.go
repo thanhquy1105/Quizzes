@@ -23,18 +23,6 @@ func NewOptions(opt ...Option) *Options {
 
 type Option func(*Options)
 
-func WithUid(uid string) Option {
-	return func(opts *Options) {
-		opts.Uid = uid
-	}
-}
-
-func WithToken(token string) Option {
-	return func(opts *Options) {
-		opts.Token = token
-	}
-}
-
 func WithOnMessage(f func(msg *proto.Message)) Option {
 	return func(opts *Options) {
 		opts.OnMessage = f

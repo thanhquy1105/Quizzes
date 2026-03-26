@@ -2,8 +2,6 @@ package wkutil
 
 import (
 	"fmt"
-	"hash/crc32"
-	"strconv"
 	"strings"
 )
 
@@ -20,11 +18,6 @@ func NewSlotBitMap(slotNum uint32) *SlotBitMap {
 		bits = make([]byte, (slotNum/8)+1)
 	}
 	return &SlotBitMap{bits: bits, slotNum: slotNum}
-}
-
-func NewSlotBitMapWithBits(bits []byte) *SlotBitMap {
-
-	return &SlotBitMap{bits: bits}
 }
 
 func (s *SlotBitMap) SetSlot(num uint32, v bool) {
@@ -176,64 +169,4 @@ func (s *SlotBitMap) FormatSlots() string {
 		}
 	}
 	return strings.Join(formatStr, ",")
-}
-
-func NewSlotBitMapFromFormat(formatStr string, slotCount uint32) *SlotBitMap {
-	slots := NewSlotBitMap(slotCount)
-	if len(formatStr) == 0 {
-		return slots
-	}
-	splitStr := strings.Split(formatStr, ",")
-	for _, v := range splitStr {
-		if strings.Contains(v, "-") {
-			splitRange := strings.Split(v, "-")
-			start, _ := strconv.Atoi(splitRange[0])
-			end, _ := strconv.Atoi(splitRange[1])
-			slots.SetSlotForRange(uint32(start), uint32(end), true)
-		} else {
-			vI, _ := strconv.Atoi(v)
-			slots.SetSlot(uint32(vI), true)
-		}
-	}
-	return slots
-}
-
-func SlotsContains(b, subslice []byte) bool {
-	if len(b) < len(subslice) {
-		return false
-	}
-	for i := 0; i < len(b); i++ {
-		b1 := b[i]
-		s1 := subslice[i]
-		for j := 0; j < 8; j++ {
-			b11 := b1 >> j & 0x01
-			s11 := s1 >> j & 0x01
-			if s11 == 1 && b11 == 0 {
-				return false
-			}
-
-		}
-
-	}
-	return true
-}
-
-func GetSlotNum(slotCount int, v string) uint32 {
-	value := crc32.ChecksumIEEE([]byte(v))
-	return value % uint32(slotCount)
-}
-
-func GetSlotFillFormat(slot int, slotCount int) string {
-
-	if slotCount < 100 {
-		return fmt.Sprintf("%02d", slot)
-	}
-	if slotCount < 1000 {
-		return fmt.Sprintf("%03d", slot)
-	}
-
-	if slotCount < 10000 {
-		return fmt.Sprintf("%04d", slot)
-	}
-	panic(fmt.Errorf("slotCount too large %d", slotCount))
 }

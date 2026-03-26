@@ -71,57 +71,8 @@ func WithWSSAddr(v string) Option {
 	}
 }
 
-func WithTCPTLSConfig(v *tls.Config) Option {
-	return func(opts *Options) {
-		opts.TCPTLSConfig = v
-	}
-}
-
 func WithWSTLSConfig(v *tls.Config) Option {
 	return func(opts *Options) {
 		opts.WSTLSConfig = v
-	}
-}
-
-func WithMaxOpenFiles(v int) Option {
-	return func(opts *Options) {
-		opts.MaxOpenFiles = v
-	}
-}
-
-func WithSubReactorNum(v int) Option {
-	return func(opts *Options) {
-		opts.SubReactorNum = v
-	}
-}
-
-func WithSocketRecvBuffer(recvBuf int) Option {
-	return func(opts *Options) {
-		opts.SocketRecvBuffer = recvBuf
-	}
-}
-
-func WithSocketSendBuffer(sendBuf int) Option {
-	return func(opts *Options) {
-		opts.SocketSendBuffer = sendBuf
-	}
-}
-
-func WithTCPKeepAlive(v time.Duration) Option {
-	return func(opts *Options) {
-		opts.TCPKeepAlive = v
-	}
-}
-
-func WithOnReadBytes(f func(n int)) Option {
-	return func(opts *Options) {
-		opts.Event.OnReadBytes = f
-	}
-}
-
-func WithOnWirteBytes(f func(n int)) Option {
-
-	return func(opts *Options) {
-		opts.Event.OnWirteBytes = f
 	}
 }

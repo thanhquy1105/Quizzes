@@ -30,19 +30,6 @@ type DataPipeline struct {
 	deliverDataFunc func(data []byte) error
 }
 
-func NewDataPipeline(maxPeekByte int, deliverDataFunc func(data []byte) error) *DataPipeline {
-	return &DataPipeline{
-		ringBuffer:      &RingBuffer{},
-		maxPeekByte:     maxPeekByte,
-		triggerChan:     make(chan struct{}, 100),
-		Log:             wklog.NewWKLog("dataPipeline"),
-		stoppedChan:     make(chan struct{}),
-		doneChan:        make(chan struct{}),
-		stopped:         false,
-		deliverDataFunc: deliverDataFunc,
-	}
-}
-
 func (d *DataPipeline) Append(data []byte) (int, error) {
 	d.Lock()
 	defer d.Unlock()

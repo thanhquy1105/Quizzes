@@ -24,16 +24,6 @@ func SockaddrToTCPOrUnixAddr(sa unix.Sockaddr) net.Addr {
 	return nil
 }
 
-func SockaddrToUDPAddr(sa unix.Sockaddr) net.Addr {
-	switch sa := sa.(type) {
-	case *unix.SockaddrInet4:
-		return &net.UDPAddr{IP: sa.Addr[0:], Port: sa.Port}
-	case *unix.SockaddrInet6:
-		return &net.UDPAddr{IP: sa.Addr[0:], Port: sa.Port, Zone: ip6ZoneToString(sa.ZoneId)}
-	}
-	return nil
-}
-
 func ip6ZoneToString(zone uint32) string {
 	if zone == 0 {
 		return ""

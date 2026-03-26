@@ -140,18 +140,6 @@ func RemoveRepeatedElementWithCapacity[T comparable](arr []T, estimatedUniqueCou
 	return result
 }
 
-func StringSliceDedup(arr []string) []string {
-	return RemoveRepeatedElementOptimized(arr)
-}
-
-func Uint64SliceDedup(arr []uint64) []uint64 {
-	return RemoveRepeatedElementOptimized(arr)
-}
-
-func IntSliceDedup(arr []int) []int {
-	return RemoveRepeatedElementOptimized(arr)
-}
-
 type DedupStats struct {
 	OriginalCount   int
 	UniqueCount     int

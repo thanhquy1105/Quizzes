@@ -11,12 +11,6 @@ type WaitGroupWrapper struct {
 	count int64
 }
 
-func NewWaitGroupWrapper(name string) *WaitGroupWrapper {
-	return &WaitGroupWrapper{
-		Name: name,
-	}
-}
-
 func (w *WaitGroupWrapper) Wrap(cb func()) {
 	w.Add(1)
 	atomic.AddInt64(&w.count, 1)

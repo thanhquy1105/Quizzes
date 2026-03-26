@@ -33,11 +33,6 @@ type ConnStats struct {
 	OutPacketBytes atomic.Int64
 }
 
-func NewConnStats() *ConnStats {
-
-	return &ConnStats{}
-}
-
 type Conn interface {
 	ID() int64
 

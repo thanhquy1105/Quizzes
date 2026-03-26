@@ -66,15 +66,6 @@ type InMemRateLimiter struct {
 	limited       bool
 }
 
-func NewInMemRateLimiter(maxSize uint64) *InMemRateLimiter {
-	return &InMemRateLimiter{
-
-		tick:          1,
-		rl:            RateLimiter{maxSize: maxSize},
-		followerSizes: make(map[uint64]followerState),
-	}
-}
-
 func (r *InMemRateLimiter) Enabled() bool {
 	return r.rl.Enabled()
 }

@@ -248,14 +248,6 @@ func (s *Server) onClose(conn Conn) {
 	}
 }
 
-func GetUidFromContext(conn Conn) string {
-	if conn == nil || conn.Context() == nil {
-		return ""
-	}
-	ctx := conn.Context().(*connContext)
-	return ctx.uid.Load()
-}
-
 type GnetConn struct {
 	gnet.Conn
 }

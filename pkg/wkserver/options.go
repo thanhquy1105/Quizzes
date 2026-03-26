@@ -46,39 +46,9 @@ func NewOptions() *Options {
 
 type Option func(*Options)
 
-func WithRequestTimeout(timeout time.Duration) Option {
-	return func(o *Options) {
-		o.RequestTimeout = timeout
-	}
-}
-
-func WithRequestPoolSize(size int) Option {
-	return func(o *Options) {
-		o.RequestPoolSize = size
-	}
-}
-
-func WithMessagePoolSize(size int) Option {
-	return func(o *Options) {
-		o.MessagePoolSize = size
-	}
-}
-
-func WithMessagePoolOn(on bool) Option {
-	return func(o *Options) {
-		o.MessagePoolOn = on
-	}
-}
-
 func WithAddr(addr string) Option {
 	return func(o *Options) {
 		o.Addr = addr
-	}
-}
-
-func WithConnPath(path string) Option {
-	return func(o *Options) {
-		o.ConnPath = path
 	}
 }
 
@@ -100,49 +70,8 @@ func WithWSTLSConfig(tlsConfig *tls.Config) Option {
 	}
 }
 
-func WithClosePath(path string) Option {
-	return func(o *Options) {
-		o.ClosePath = path
-	}
-}
-
-func WithMaxIdle(maxIdle time.Duration) Option {
-	return func(o *Options) {
-		o.MaxIdle = maxIdle
-	}
-}
-
-func WithTimingWheelTick(tick time.Duration) Option {
-	return func(o *Options) {
-		o.TimingWheelTick = tick
-	}
-}
-
-func WithTimingWheelSize(size int64) Option {
-	return func(o *Options) {
-		o.TimingWheelSize = size
-	}
-}
-
 func WithOnMessage(onMessage func(conn Conn, msg *proto.Message)) Option {
 	return func(o *Options) {
 		o.OnMessage = onMessage
-	}
-}
-
-func WithOnRequest(onRequest func(conn Conn, req *proto.Request)) Option {
-	return func(o *Options) {
-		o.OnRequest = onRequest
-	}
-}
-
-func WithOnResponse(onResponse func(conn Conn, resp *proto.Response)) Option {
-	return func(o *Options) {
-		o.OnResponse = onResponse
-	}
-}
-func WithLogDetailOn(on bool) Option {
-	return func(opts *Options) {
-		opts.LogDetailOn = on
 	}
 }
