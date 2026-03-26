@@ -139,7 +139,7 @@ type QuizServer struct {
 
 func NewQuizServer(addr string) *QuizServer {
 	s := &QuizServer{
-		Server:  server.New(addr, server.WithWSAddr("ws://0.0.0.0:8081")),
+		Server:  server.New(addr, server.WithWSAddr("ws://0.0.0.0:8081"), server.WithGorillaWSAddr("0.0.0.0:8082")),
 		Manager: NewManager(),
 	}
 	s.registerRoutes()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"sync"
 	"time"
 
@@ -46,6 +47,7 @@ type Server struct {
 
 	wsEngine *net.Engine
 	ready    chan struct{}
+	gorillaServer *http.Server
 }
 
 func New(addr string, ops ...Option) *Server {
@@ -140,6 +142,15 @@ func (s *Server) Start() error {
 		return fmt.Errorf("gnet start timeout")
 	}
 
+	if s.opts.GorillaWSAddr != "" {
+		go func() {
+			err := s.StartGorillaWS()
+			if err != nil {
+				s.Error("failed to start gorilla ws server", zap.Error(err))
+			}
+		}()
+	}
+
 	if s.wsEngine != nil {
 		s.wsEngine.OnConnect(func(conn net.Conn) error {
 			return s.onWSConnect(conn)
@@ -164,6 +175,11 @@ func (s *Server) Stop() {
 	s.timingWheel.Stop()
 	if s.wsEngine != nil {
 		_ = s.wsEngine.Stop()
+	}
+	if s.gorillaServer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+		_ = s.gorillaServer.Shutdown(ctx)
 	}
 	timeCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()

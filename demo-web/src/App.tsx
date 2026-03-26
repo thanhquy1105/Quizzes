@@ -32,7 +32,7 @@ export default function App() {
     setStatus('connecting');
     setErrorMsg(null);
     
-    const client = new WkClient('ws://localhost:8081');
+    const client = new WkClient('ws://localhost:8082/ws');
     try {
       await client.connect();
       clientRef.current = client;
@@ -65,7 +65,7 @@ export default function App() {
     } catch (err) {
       console.error(err);
       setStatus('error');
-      setErrorMsg("Failed to connect to Quiz Server. Please check if the server is running on port 8081.");
+      setErrorMsg("Failed to connect to Quiz Server. Please check if the server is running on port 8082.");
     }
   }, [name, quizId, uid]);
 

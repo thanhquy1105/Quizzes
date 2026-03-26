@@ -12,6 +12,7 @@ type Options struct {
 	Addr            string
 	WSAddr          string
 	WSSAddr         string
+	GorillaWSAddr   string
 	WSTLSConfig     *tls.Config
 	RequestPoolSize int
 	MessagePoolSize int
@@ -62,6 +63,12 @@ func WithWSAddr(addr string) Option {
 func WithWSSAddr(addr string) Option {
 	return func(o *Options) {
 		o.WSSAddr = addr
+	}
+}
+
+func WithGorillaWSAddr(addr string) Option {
+	return func(o *Options) {
+		o.GorillaWSAddr = addr
 	}
 }
 
