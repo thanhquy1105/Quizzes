@@ -32,6 +32,14 @@ func (c *QuizCache) validationKey(id uint64) string {
 	return fmt.Sprintf("quiz:v:%d", id)
 }
 
+func (c *QuizCache) sessionKey(code string) string {
+	return fmt.Sprintf("session:detail:%s", code)
+}
+
+func (c *QuizCache) sessionListKey() string {
+	return "session:list"
+}
+
 func (c *QuizCache) Get(ctx context.Context, id uint64) (*model.Quiz, error) {
 	key := c.quizKey(id)
 
@@ -107,11 +115,32 @@ func (c *QuizCache) List(ctx context.Context) ([]model.Quiz, error) {
 }
 
 func (c *QuizCache) FindActiveSessionByCode(ctx context.Context, code string) (*model.QuizSession, error) {
-	return c.store.FindActiveSessionByCode(ctx, code)
+	// Use cached GetSessionByCode
+	session, err := c.GetSessionByCode(ctx, code)
+	if err != nil {
+		return nil, err
+	}
+	if session == nil {
+		return nil, nil
+	}
+
+	// Double check active status in Go logic (more efficient than complex Redis keys)
+	now := time.Now()
+	if (session.StartedAt == nil || session.StartedAt.Before(now) || session.StartedAt.Equal(now)) &&
+		(session.EndedAt == nil || session.EndedAt.After(now) || session.EndedAt.Equal(now)) {
+		return session, nil
+	}
+
+	return nil, nil
 }
 
 func (c *QuizCache) CreateSession(ctx context.Context, session *model.QuizSession) error {
-	return c.store.CreateSession(ctx, session)
+	if err := c.store.CreateSession(ctx, session); err != nil {
+		return err
+	}
+	// Invalidate session list
+	_ = c.rdb.Del(ctx, c.sessionListKey()).Err()
+	return nil
 }
 
 func (c *QuizCache) AddParticipant(ctx context.Context, participant *model.SessionParticipant) error {
@@ -127,11 +156,55 @@ func (c *QuizCache) UpdateParticipantScore(ctx context.Context, sessionID, userI
 }
 
 func (c *QuizCache) ListSessions(ctx context.Context) ([]model.QuizSession, error) {
-	return c.store.ListSessions(ctx)
+	key := c.sessionListKey()
+
+	// 1. Try Redis
+	val, err := c.rdb.Get(ctx, key).Result()
+	if err == nil {
+		var sessions []model.QuizSession
+		if err := json.Unmarshal([]byte(val), &sessions); err == nil {
+			return sessions, nil
+		}
+	}
+
+	// 2. Fallback to DB
+	sessions, err := c.store.ListSessions(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Cache it (1h TTL)
+	if data, err := json.Marshal(sessions); err == nil {
+		_ = c.rdb.Set(ctx, key, data, 1*time.Hour).Err()
+	}
+
+	return sessions, nil
 }
 
 func (c *QuizCache) GetSessionByCode(ctx context.Context, code string) (*model.QuizSession, error) {
-	return c.store.GetSessionByCode(ctx, code)
+	key := c.sessionKey(code)
+
+	// 1. Try Redis
+	val, err := c.rdb.Get(ctx, key).Result()
+	if err == nil {
+		var session model.QuizSession
+		if err := json.Unmarshal([]byte(val), &session); err == nil {
+			return &session, nil
+		}
+	}
+
+	// 2. Fallback to DB
+	session, err := c.store.GetSessionByCode(ctx, code)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Cache it (24h TTL)
+	if data, err := json.Marshal(session); err == nil {
+		_ = c.rdb.Set(ctx, key, data, 24*time.Hour).Err()
+	}
+
+	return session, nil
 }
 
 func (c *QuizCache) IsParticipant(ctx context.Context, sessionID, userID uint64) (bool, error) {

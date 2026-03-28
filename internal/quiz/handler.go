@@ -172,7 +172,7 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 
 	if userAnswer != nil {
 		s.Server.Warn("handleAnswer: user already answered this question", zap.Uint64("userID", user.ID), zap.Uint64("questionID", req.QuestionID))
-		ctx.WriteErrorAndStatus(errors.New("user already answered this question"), proto.StatusError)
+		ctx.WriteErrorAndStatus(errors.New("user already answered this question"), proto.StatusAlreadyAnswered)
 		return
 	}
 

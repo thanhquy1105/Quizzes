@@ -204,7 +204,9 @@ export class WsClient {
             const errMsg = typeof parsedBody === 'string'
                 ? parsedBody
                 : (parsedBody as any)?.error || (parsedBody as any)?.message || `Server error (status ${status})`;
-            if (rejecter) rejecter(new Error(errMsg));
+            const error = new Error(errMsg) as any;
+            error.status = status;
+            if (rejecter) rejecter(error);
         } else {
             if (handler) handler({ id, status, timestamp, body: parsedBody });
         }

@@ -296,6 +296,19 @@ export default function App() {
     };
   }, []);
 
+  const markQuestionAsAnswered = (questionId: number) => {
+    console.log("Marking question as answered:", questionId);
+    setActiveQuiz(prev => {
+      if (!prev?.Questions) return prev;
+      return {
+        ...prev,
+        Questions: prev.Questions.map(q =>
+          q.ID === questionId ? { ...q, answered: true } : q
+        ),
+      };
+    });
+  };
+
   const submitAnswer = async (questionId: number, answerId: number) => {
     if (!clientRef.current) return;
     try {
@@ -306,19 +319,18 @@ export default function App() {
       });
       setLastScoreChange(username);
       setTimeout(() => setLastScoreChange(null), 800);
-      // Mark question as answered locally so it disappears from the list
-      setActiveQuiz(prev => {
-        if (!prev?.Questions) return prev;
-        return {
-          ...prev,
-          Questions: prev.Questions.map(q =>
-            q.ID === questionId ? { ...q, answered: true } : q
-          ),
-        };
-      });
+      markQuestionAsAnswered(questionId);
       addToast("Answer submitted!", 'success');
     } catch (err: any) {
       console.error("Failed to submit answer", err);
+      console.log("Error Status:", err.status, "Message:", err.message);
+
+      // Fallback: Check both status code AND message content for maximum robustness
+      if (err.status === 3 || (err.message && err.message.toLowerCase().includes("already answered"))) {
+        addToast("Question already answered. Moving on...", 'info');
+        markQuestionAsAnswered(questionId);
+        return;
+      }
       const msg = err?.message || 'Failed to submit answer';
       addToast(msg, 'error');
     }

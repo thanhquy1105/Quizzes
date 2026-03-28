@@ -26,9 +26,10 @@ const (
 type Status uint8
 
 const (
-	StatusOK       Status = 0
-	StatusError    Status = 1
-	StatusNotFound Status = 2
+	StatusOK             Status = 0
+	StatusError          Status = 1
+	StatusNotFound       Status = 2
+	StatusAlreadyAnswered Status = 3
 )
 
 type Request struct {
