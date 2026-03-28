@@ -29,19 +29,25 @@ export class WsClient {
 
     constructor(private url: string) { }
 
-    connect(): Promise<void> {
+    private connectResolver: (() => void) | null = null;
+    private connectRejecter: ((err: any) => void) | null = null;
+
+    connect(uid: string, token: string): Promise<void> {
         return new Promise((resolve, reject) => {
+            this.connectResolver = resolve;
+            this.connectRejecter = reject;
             this.ws = new WebSocket(this.url);
             this.ws.binaryType = "arraybuffer";
 
             this.ws.onopen = () => {
-                console.log("Connected to WsServer");
+                console.log("Connected to WsServer, authenticating...");
                 this.startHeartbeat();
-                resolve();
+                this.sendConnect(uid, token);
             };
 
             this.ws.onerror = (err) => {
                 console.error("WebSocket error:", err);
+                if (this.connectRejecter) this.connectRejecter(err);
                 reject(err);
             };
 
@@ -55,6 +61,39 @@ export class WsClient {
                 this.stopHeartbeat();
             };
         });
+    }
+
+    private sendConnect(uid: string, token: string) {
+        const requestId = BigInt(Math.floor(Math.random() * 1000000));
+        const uidBytes = new TextEncoder().encode(uid);
+        const tokenBytes = new TextEncoder().encode(token);
+        const bodyBytes = new Uint8Array(0); // Empty body for now
+
+        // Connect binary: Id(8) + UidLen(2) + Uid + TokenLen(2) + Token + BodyLen(4) + Body (LittleEndian)
+        const totalLen = 8 + 2 + uidBytes.length + 2 + tokenBytes.length + 4 + bodyBytes.length;
+        const buffer = new ArrayBuffer(totalLen);
+        const view = new DataView(buffer);
+        const uint8 = new Uint8Array(buffer);
+
+        let offset = 0;
+        view.setBigUint64(offset, requestId, true);
+        offset += 8;
+
+        view.setUint16(offset, uidBytes.length, true);
+        offset += 2;
+        uint8.set(uidBytes, offset);
+        offset += uidBytes.length;
+
+        view.setUint16(offset, tokenBytes.length, true);
+        offset += 2;
+        uint8.set(tokenBytes, offset);
+        offset += tokenBytes.length;
+
+        view.setUint32(offset, bodyBytes.length, true);
+        offset += 4;
+        uint8.set(bodyBytes, offset);
+
+        this.send(MsgType.Connect, uint8);
     }
 
     private handleData(buffer: ArrayBuffer) {
@@ -78,6 +117,11 @@ export class WsClient {
         if (uint8.length < HEADER_FULL_LEN) return;
         const dataLen = view.getUint32(MAGIC_LEN + TYPE_LEN, false); // Big Endian in protocol envelope
         const data = uint8.slice(HEADER_FULL_LEN, HEADER_FULL_LEN + dataLen);
+
+        if (msgType === MsgType.Connack) {
+            this.handleConnack(data);
+            return;
+        }
 
         if (msgType === MsgType.Resp) {
             this.handleResponse(data);
@@ -103,6 +147,20 @@ export class WsClient {
 
         if (this.onMessageCallback) {
             this.onMessageCallback(MsgType.Message, content);
+        }
+    }
+
+    private handleConnack(data: Uint8Array) {
+        if (data.length < 9) return; // Id(8) + Status(1)
+        const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+        const status = view.getUint8(8);
+
+        if (status === 0) { // StatusOK
+            console.log("Authenticated successfully!");
+            if (this.connectResolver) this.connectResolver();
+        } else {
+            console.error("Authentication failed with status:", status);
+            if (this.connectRejecter) this.connectRejecter(new Error(`Authentication failed: ${status}`));
         }
     }
 

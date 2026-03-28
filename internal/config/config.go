@@ -11,12 +11,14 @@ type Config struct {
 	Server ServerConfig `yaml:"server"`
 	Redis  RedisConfig  `yaml:"redis"`
 	MySQL  MySQLConfig  `yaml:"mysql"`
+	Token  TokenConfig  `yaml:"token"`
 }
 
 type ServerConfig struct {
 	TCPAddr         string        `yaml:"tcp_addr"`
 	WSAddr          string        `yaml:"ws_addr"`
 	GorillaWSAddr   string        `yaml:"gorilla_ws_addr"`
+	HTTPAddr        string        `yaml:"http_addr"`
 	RequestPoolSize int           `yaml:"request_pool_size"`
 	MessagePoolSize int           `yaml:"message_pool_size"`
 	RequestTimeout  time.Duration `yaml:"request_timeout"`
@@ -35,6 +37,12 @@ type MySQLConfig struct {
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 	DBName   string `yaml:"db_name"`
+}
+
+type TokenConfig struct {
+	SecretKey            string        `yaml:"secret_key"`
+	AccessTokenDuration  time.Duration `yaml:"access_token_duration"`
+	RefreshTokenDuration time.Duration `yaml:"refresh_token_duration"`
 }
 
 func Load(path string) (*Config, error) {

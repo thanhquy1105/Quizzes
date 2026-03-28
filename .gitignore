@@ -1,0 +1,61 @@
+# Binaries and object files
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test related
+*.test
+*.out
+coverage.txt
+
+# Go dependencies
+vendor/
+
+# Node dependencies and build output
+node_modules/
+demo-web/node_modules/
+dist/
+demo-web/dist/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+demo-web/.env
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Project specific
+# config.yml (Often kept as TEMPLATE but sensitive should be excluded)
+# Better to exclude local overrides if any
+config.local.yml
+
+# Temporary files
+/tmp/
+.gemini/
+cortex_report/
+brain/
+knowledge/
+implementation_plan.md
+task.md
+walkthrough.md
+artifact.md
+analysis_results.md
+research_notes.md
+experiment_results.md

@@ -2,14 +2,18 @@ CREATE TABLE users (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255),
     username VARCHAR(100) UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
+    INDEX idx_user_deleted_at (deleted_at)
 );
 
 CREATE TABLE quizzes (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(255),
     description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
+    INDEX idx_quiz_deleted_at (deleted_at)
 );
 
 CREATE TABLE questions (
@@ -19,7 +23,9 @@ CREATE TABLE questions (
     point INT DEFAULT 10,
     time_limit INT DEFAULT 10,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_quiz_id (quiz_id)
+    deleted_at TIMESTAMP NULL,
+    INDEX idx_quiz_id (quiz_id),
+    INDEX idx_question_deleted_at (deleted_at)
 );
 
 CREATE TABLE answers (
@@ -27,7 +33,9 @@ CREATE TABLE answers (
     question_id BIGINT,
     content TEXT,
     is_correct BOOLEAN,
-    INDEX idx_question_id (question_id)
+    deleted_at TIMESTAMP NULL,
+    INDEX idx_question_id (question_id),
+    INDEX idx_answer_deleted_at (deleted_at)
 );
 
 CREATE TABLE quiz_sessions (
@@ -37,7 +45,9 @@ CREATE TABLE quiz_sessions (
     status ENUM('waiting', 'running', 'finished') DEFAULT 'waiting',
     started_at TIMESTAMP NULL,
     ended_at TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
+    INDEX idx_session_deleted_at (deleted_at)
 );
 
 CREATE TABLE session_participants (

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"btaskee-quiz/internal/repository"
+	"btaskee-quiz/internal/model"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -32,14 +32,14 @@ func (r *LeaderboardStore) IncrBy(ctx context.Context, quizID, uid string, delta
 	return r.rdb.ZIncrBy(ctx, lbKey(quizID), delta, uid).Err()
 }
 
-func (r *LeaderboardStore) GetRanked(ctx context.Context, quizID string) ([]repository.RankedEntry, error) {
+func (r *LeaderboardStore) GetRanked(ctx context.Context, quizID string) ([]model.RankedEntry, error) {
 	res, err := r.rdb.ZRevRangeWithScores(ctx, lbKey(quizID), 0, -1).Result()
 	if err != nil {
 		return nil, err
 	}
-	entries := make([]repository.RankedEntry, len(res))
+	entries := make([]model.RankedEntry, len(res))
 	for i, z := range res {
-		entries[i] = repository.RankedEntry{
+		entries[i] = model.RankedEntry{
 			UID:   z.Member.(string),
 			Score: z.Score,
 		}

@@ -1,1 +1,0 @@
-protoc ./pkg/server/proto/request.proto --go_out=./pkg/server/proto

@@ -1,7 +1,8 @@
 server:
   tcp_addr: "tcp://0.0.0.0:8080"
   ws_addr: "ws://0.0.0.0:8081"
-  gorilla_ws_addr: "0.0.0.0:8082"
+  gorilla_ws_addr: "0.0.0.0:8083"
+  http_addr: "0.0.0.0:8082"
   request_pool_size: 20000
   message_pool_size: 40000
   request_timeout: "10s"
@@ -17,3 +18,8 @@ mysql:
   user: "root"
   password: "my-secret-pw"
   db_name: "btaskee_quiz"
+
+token:
+  secret_key: "this-is-a-very-secret-key-that-must-be-at-least-32-chars"
+  access_token_duration: "24h"
+  refresh_token_duration: "168h"

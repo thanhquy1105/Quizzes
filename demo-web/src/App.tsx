@@ -14,28 +14,161 @@ interface Participant {
   score: number;
 }
 
+interface Quiz {
+  ID: number;
+  Title: string;
+  Description: string;
+  question_count: number;
+  participant_count: number;
+}
+
+function SocketStatus({ status }: { status: 'disconnected' | 'connecting' | 'connected' | 'error' }) {
+  const statusConfig = {
+    connected: { color: 'bg-emerald-500', text: 'Connected', shadow: 'shadow-[0_0_12px_rgba(16,185,129,0.5)]' },
+    connecting: { color: 'bg-blue-500', text: 'Connecting...', shadow: 'shadow-[0_0_12px_rgba(59,130,246,0.5)]' },
+    disconnected: { color: 'bg-slate-500', text: 'Disconnected', shadow: '' },
+    error: { color: 'bg-red-500', text: 'Conn Error', shadow: 'shadow-[0_0_12px_rgba(239,68,68,0.5)]' },
+  };
+
+  const current = statusConfig[status];
+
+  return (
+    <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-2.5 transition-all duration-500">
+      <div className={cn(
+        "w-2 h-2 rounded-full",
+        current.color,
+        current.shadow,
+        (status === 'connecting' || status === 'connected') && "animate-pulse"
+      )} />
+      <span className="text-[10px] font-black text-slate-300 tracking-[0.1em] uppercase">{current.text}</span>
+    </div>
+  );
+}
+
 export default function App() {
   const [name, setName] = useState('');
-  const [quizId, setQuizId] = useState('BTASKEE-QUIZ-2024');
-  const [uid] = useState('user-' + Math.floor(Math.random() * 1000));
+  const [username, setUsername] = useState('');
+  const [quizId, setQuizId] = useState('');
+  const [uid, setUid] = useState('');
   const [joined, setJoined] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [leaderboard, setLeaderboard] = useState<Participant[]>([]);
   const [lastScoreChange, setLastScoreChange] = useState<string | null>(null);
   const [status, setStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  
   const clientRef = useRef<WsClient | null>(null);
 
+  const [accessToken, setAccessToken] = useState('');
+  const [refreshToken, setRefreshToken] = useState('');
+
+  const refreshSession = useCallback(async () => {
+    if (!refreshToken) return null;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAccessToken(data.access_token);
+        setRefreshToken(data.refresh_token);
+        console.log("Session refreshed successfully");
+        return data.access_token as string;
+      } else {
+        console.warn("Refresh token expired or invalid");
+        setIsLoggedIn(false);
+        setJoined(false);
+        setStatus('disconnected');
+        setErrorMsg("Session expired. Please login again.");
+        return null;
+      }
+    } catch (err) {
+      console.error("Refresh failed", err);
+      return null;
+    }
+  }, [refreshToken]);
+
+  const callApi = useCallback(async (url: string, options: RequestInit = {}, tokenOverride?: string) => {
+    const headers = new Headers(options.headers);
+    const token = tokenOverride || accessToken;
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    let response = await fetch(url, { ...options, headers });
+
+    if (response.status === 401) {
+      console.log("Access token expired, attempting refresh...");
+      const newToken = await refreshSession();
+      if (newToken) {
+        headers.set('Authorization', `Bearer ${newToken}`);
+        response = await fetch(url, { ...options, headers });
+      }
+    }
+
+    return response;
+  }, [accessToken, refreshSession]);
+
   const connect = useCallback(async () => {
-    if (!name) return;
-    
+    if (!name || !username) return;
+
     setStatus('connecting');
     setErrorMsg(null);
-    
-    const client = new WsClient('ws://localhost:8082/ws');
-    // const client = new WsClient('ws://localhost:8081');
+
     try {
-      await client.connect();
+      // 1. Login request (HTTP)
+      const loginResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username,
+          name: name
+        }),
+      });
+
+      if (!loginResponse.ok) {
+        throw new Error(`Login failed with status: ${loginResponse.status}`);
+      }
+
+      const loginData = await loginResponse.json();
+      const initialToken = loginData.access_token;
+      setAccessToken(initialToken);
+      setRefreshToken(loginData.refresh_token);
+      setUid(username);
+
+      // 2. Fetch Quizzes (HTTP with Auth & Auto-Refresh)
+      const quizResponse = await callApi(`${import.meta.env.VITE_API_BASE_URL}/quizzes`, {}, initialToken);
+
+      if (!quizResponse.ok) {
+        throw new Error(`Failed to fetch quizzes: ${quizResponse.status}`);
+      }
+
+      const quizData = await quizResponse.json();
+      setQuizzes(quizData.quizzes || []);
+      setIsLoggedIn(true);
+
+      // 3. Connect to WebSocket (with Token Authentication & Retry on Refresh)
+      const client = new WsClient(import.meta.env.VITE_WS_URL);
+      
+      try {
+        await client.connect(username, initialToken);
+      } catch (wsErr) {
+        console.log("WebSocket initial auth failed, trying refresh...");
+        const refreshedToken = await refreshSession();
+        if (refreshedToken) {
+          await client.connect(username, refreshedToken);
+        } else {
+          throw wsErr;
+        }
+      }
+      
       clientRef.current = client;
       setStatus('connected');
 
@@ -53,22 +186,28 @@ export default function App() {
           }
         }
       });
-
-      // Send join request
-      await client.request('/join', {
-        quiz_id: quizId,
-        uid: uid,
-        name: name
-      });
-
-      setJoined(true);
-      console.log("join true")
     } catch (err) {
       console.error(err);
       setStatus('error');
-      setErrorMsg("Failed to connect to Quiz Server. Please check if the server is running on port 8082.");
+      setErrorMsg(err instanceof Error ? err.message : "Failed to connect or login to Quiz Server.");
     }
-  }, [name, quizId, uid]);
+  }, [name, username]);
+
+  const joinQuiz = async (selectedQuizId: string) => {
+    if (!clientRef.current) return;
+    try {
+      setQuizId(selectedQuizId);
+      await clientRef.current.request('/join', {
+        quiz_id: selectedQuizId,
+        uid: username,
+        name: name
+      });
+      setJoined(true);
+    } catch (err) {
+      console.error("Failed to join quiz", err);
+      setErrorMsg("Failed to join the selected quiz.");
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -79,17 +218,19 @@ export default function App() {
   const submitScore = async () => {
     if (!clientRef.current) return;
     try {
-        await clientRef.current.request('/answer', {
-          quiz_id: quizId,
-          uid: uid,
-          is_correct: true
-        });
-        setLastScoreChange(uid);
-        setTimeout(() => setLastScoreChange(null), 800);
+      await clientRef.current.request('/answer', {
+        quiz_id: quizId,
+        uid: uid,
+        is_correct: true
+      });
+      setLastScoreChange(uid);
+      setTimeout(() => setLastScoreChange(null), 800);
     } catch (err) {
-        console.error("Failed to submit score", err);
+      console.error("Failed to submit score", err);
     }
   };
+
+  const currentQuiz = quizzes.find(q => q.ID.toString() === quizId);
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100 p-4 font-sans selection:bg-blue-500/30 selection:text-blue-200 overflow-x-hidden relative">
@@ -98,21 +239,21 @@ export default function App() {
       <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-6xl mx-auto w-full min-h-[90vh] flex flex-col items-center justify-center relative z-10 py-8">
-        {!joined ? (
+        {!isLoggedIn ? (
           <div className="w-full max-w-lg animate-in fade-in slide-in-from-bottom-8 duration-1000">
             <div className="glass p-10 rounded-[2.5rem] border-white/10 flex flex-col gap-8">
               <div className="flex flex-col items-center text-center gap-4">
                 <div className="relative">
-                    <div className="absolute inset-0 bg-blue-500 blur-2xl opacity-20 animate-pulse" />
-                    <div className="relative p-5 rounded-3xl bg-gradient-to-br from-blue-500/20 to-blue-600/5 text-blue-400 border border-blue-500/20 shadow-2xl">
-                      <Zap size={48} strokeWidth={2.5} />
-                    </div>
+                  <div className="absolute inset-0 bg-blue-500 blur-2xl opacity-20 animate-pulse" />
+                  <div className="relative p-5 rounded-3xl bg-gradient-to-br from-blue-500/20 to-blue-600/5 text-blue-400 border border-blue-500/20 shadow-2xl">
+                    <Zap size={48} strokeWidth={2.5} />
+                  </div>
                 </div>
                 <div>
-                    <h1 className="text-4xl font-black tracking-tight mb-2">
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-400 bg-[length:200%_auto] animate-gradient">QUIZ MASTER</span>
-                    </h1>
-                    <p className="text-slate-400 text-lg font-medium">Elevate your knowledge in real-time</p>
+                  <h1 className="text-4xl font-black tracking-tight mb-2">
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-400 bg-[length:200%_auto] animate-gradient">QUIZ MASTER</span>
+                  </h1>
+                  <p className="text-slate-400 text-lg font-medium">Elevate your knowledge in real-time</p>
                 </div>
               </div>
 
@@ -128,37 +269,36 @@ export default function App() {
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-500 uppercase tracking-[0.2em] ml-1">Session Protocol</label>
+                  <label className="text-sm font-bold text-slate-500 uppercase tracking-[0.2em] ml-1">Username</label>
                   <div className="relative group">
                     <div className="absolute inset-0 bg-blue-500/5 rounded-2xl blur-lg transition-opacity opacity-0 group-focus-within:opacity-100" />
-                    <input 
-                      value={quizId}
-                      onChange={e => setQuizId(e.target.value)}
+                    <input
+                      value={username}
+                      onChange={e => setUsername(e.target.value)}
                       className="relative w-full bg-slate-900/50 border border-white/5 rounded-2xl px-5 py-4 outline-none focus:border-blue-500/50 transition-all font-mono text-blue-300"
-                      placeholder="Enter Session ID..."
+                      placeholder="Enter your username..."
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-500 uppercase tracking-[0.2em] ml-1">Your Alias</label>
+                  <label className="text-sm font-bold text-slate-500 uppercase tracking-[0.2em] ml-1">Display Name</label>
                   <div className="relative group">
                     <div className="absolute inset-0 bg-blue-500/5 rounded-2xl blur-lg transition-opacity opacity-0 group-focus-within:opacity-100" />
-                    <input 
+                    <input
                       value={name}
                       onChange={e => setName(e.target.value)}
-                      autoFocus
-                      onKeyDown={(e) => e.key === 'Enter' && name && connect()}
+                      onKeyDown={(e) => e.key === 'Enter' && name && username && connect()}
                       className="relative w-full bg-slate-900/50 border border-white/5 rounded-2xl px-5 py-4 outline-none focus:border-blue-500/50 transition-all text-lg"
-                      placeholder="What should we call you?"
+                      placeholder="How should we call you?"
                     />
                   </div>
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={connect}
-                disabled={!name || status === 'connecting'}
+                disabled={!name || !username || status === 'connecting'}
                 className={cn(
                   "relative group overflow-hidden w-full h-16 rounded-2xl font-bold text-lg transition-all",
                   status === 'connecting' ? "bg-slate-800 pointer-events-none" : "bg-white text-slate-950 active:scale-95 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)]"
@@ -176,53 +316,89 @@ export default function App() {
               </button>
             </div>
           </div>
+        ) : !joined ? (
+          <div className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="glass p-10 rounded-[2.5rem] border-white/10 flex flex-col gap-8">
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-3xl font-black tracking-tight tracking-widest uppercase">Choose Your Arena</h2>
+                  <SocketStatus status={status} />
+                </div>
+                <p className="text-slate-400 font-medium">Select a quiz to start competing in real-time</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {quizzes.map(quiz => (
+                  <button
+                    key={quiz.ID}
+                    onClick={() => joinQuiz(quiz.ID.toString())}
+                    className="group relative bg-slate-900/40 border border-white/5 rounded-[2rem] p-8 text-left transition-all hover:bg-blue-500/5 hover:border-blue-500/30 hover:shadow-[0_0_40px_rgba(59,130,246,0.1)] active:scale-[0.98]"
+                  >
+                    <div className="absolute top-6 right-6 p-3 rounded-2xl bg-blue-500/10 text-blue-400 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1">
+                      <Send size={20} />
+                    </div>
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">{quiz.Title}</h3>
+                      <p className="text-slate-400 text-sm leading-relaxed">{quiz.Description}</p>
+                      
+                      <div className="flex items-center gap-4 pt-2">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-blue-400/80 uppercase tracking-wider bg-blue-500/5 px-2.5 py-1 rounded-lg border border-blue-500/10">
+                          <Zap size={10} /> {quiz.question_count} Questions
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400/80 uppercase tracking-wider bg-emerald-500/5 px-2.5 py-1 rounded-lg border border-emerald-500/10">
+                          <Users size={10} /> {quiz.participant_count} Players
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="flex flex-col lg:row gap-10 w-full animate-in fade-in zoom-in-95 duration-700">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
               {/* Main Game Interface */}
               <div className="lg:col-span-2 space-y-8">
                 <div className="glass p-10 rounded-[2.5rem] relative overflow-hidden flex flex-col gap-10">
-                   <div className="absolute -top-12 -right-12 p-4 opacity-[0.03] text-blue-400 rotate-12">
-                     <Zap size={240} />
-                   </div>
-                   
-                   <div className="flex justify-between items-start">
+                  <div className="absolute -top-12 -right-12 p-4 opacity-[0.03] text-blue-400 rotate-12">
+                    <Zap size={240} />
+                  </div>
+
+                    <div className="flex justify-between items-center bg-slate-900/40 p-4 rounded-2xl border border-white/5">
                       <div className="space-y-1">
-                         <div className="flex items-center gap-2 text-blue-400 uppercase tracking-[0.2em] font-black text-xs">
-                            <Activity size={12} className="animate-pulse" />
-                            Live Session
-                         </div>
-                         <h2 className="text-4xl font-black tracking-tight">{quizId}</h2>
+                        <div className="flex items-center gap-2 text-blue-400 uppercase tracking-[0.2em] font-black text-[10px]">
+                          <Activity size={12} className="animate-pulse" />
+                          Live Session
+                        </div>
+                        <h2 className="text-3xl font-black tracking-tight">{currentQuiz?.Title || quizId}</h2>
                       </div>
-                      
-                      <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-3">
-                         <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)] animate-pulse" />
-                         <span className="text-sm font-bold text-slate-300 tracking-wide uppercase">Connected</span>
-                      </div>
-                   </div>
 
-                   <div className="bg-slate-900/60 border border-white/5 rounded-[2rem] p-10 flex flex-col gap-8 relative group">
-                      <div className="space-y-4">
-                        <h4 className="text-2xl font-bold text-white leading-tight">Ready for the challenge?</h4>
-                        <p className="text-slate-400 text-lg leading-relaxed max-w-md">Simulate a correct answer to climb the leaderboard in real-time. Every correct strike earns you points.</p>
-                      </div>
-                      <button 
-                        onClick={submitScore}
-                        className="w-full h-24 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 bg-[length:200%_auto] hover:bg-right transition-all duration-500 text-slate-950 font-[950] text-2xl rounded-2xl shadow-[0_20px_50px_rgba(16,185,129,0.25)] active:scale-[0.98] flex items-center justify-center gap-4 relative overflow-hidden"
-                      >
-                        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        SUBMIT STRIKE <Send size={28} strokeWidth={3} />
-                      </button>
-                   </div>
+                      <SocketStatus status={status} />
+                    </div>
 
-                   <div className="flex flex-wrap items-center gap-8 text-slate-400 pt-4 border-t border-white/5 mt-auto">
-                      <div className="flex items-center gap-2.5 font-bold text-slate-200">
-                        <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400"><Users size={20}/></div>
-                        <span className="text-lg">{leaderboard.length} <span className="text-slate-500 font-medium ml-1">Elite Players</span></span>
-                      </div>
-                      <div className="h-8 w-px bg-white/5" />
-                      <div className="text-slate-500 font-medium">Session ID: <span className="font-mono text-blue-400/80 ml-1">{uid}</span></div>
-                   </div>
+                  <div className="bg-slate-900/60 border border-white/5 rounded-[2rem] p-10 flex flex-col gap-8 relative group">
+                    <div className="space-y-4">
+                      <h4 className="text-2xl font-bold text-white leading-tight">Ready for the challenge?</h4>
+                      <p className="text-slate-400 text-lg leading-relaxed max-w-md">Simulate a correct answer to climb the leaderboard in real-time. Every correct strike earns you points.</p>
+                    </div>
+                    <button
+                      onClick={submitScore}
+                      className="w-full h-24 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 bg-[length:200%_auto] hover:bg-right transition-all duration-500 text-slate-950 font-[950] text-2xl rounded-2xl shadow-[0_20px_50px_rgba(16,185,129,0.25)] active:scale-[0.98] flex items-center justify-center gap-4 relative overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      SUBMIT STRIKE <Send size={28} strokeWidth={3} />
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-8 text-slate-400 pt-4 border-t border-white/5 mt-auto">
+                    <div className="flex items-center gap-2.5 font-bold text-slate-200">
+                      <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400"><Users size={20} /></div>
+                      <span className="text-lg">{leaderboard.length} <span className="text-slate-500 font-medium ml-1">Elite Players</span></span>
+                    </div>
+                    <div className="h-8 w-px bg-white/5" />
+                    <div className="text-slate-500 font-medium">Session ID: <span className="font-mono text-blue-400/80 ml-1">{uid}</span></div>
+                  </div>
                 </div>
               </div>
 
@@ -237,7 +413,7 @@ export default function App() {
 
                 <div className="glass rounded-[2rem] border-white/10 overflow-hidden shadow-2xl relative">
                   <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none" />
-                  
+
                   {leaderboard.length === 0 ? (
                     <div className="py-24 flex flex-col items-center gap-4 text-center px-8 relative z-10">
                       <div className="w-16 h-16 rounded-3xl bg-slate-800/50 flex items-center justify-center text-slate-600">
@@ -248,7 +424,7 @@ export default function App() {
                   ) : (
                     <div className="flex flex-col relative z-10">
                       {leaderboard.map((p, index) => (
-                        <div 
+                        <div
                           key={p.uid}
                           className={cn(
                             "flex items-center gap-5 p-5 border-b border-white/5 transition-all duration-300 relative group",
@@ -258,14 +434,14 @@ export default function App() {
                         >
                           <div className="w-10 h-10 shrink-0 flex items-center justify-center relative">
                             {index === 0 ? (
-                                <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full" />
+                              <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full" />
                             ) : null}
                             <div className={cn(
-                                "relative w-full h-full rounded-2xl flex items-center justify-center font-[950] text-sm",
-                                index === 0 ? "bg-amber-400 text-slate-900" : 
+                              "relative w-full h-full rounded-2xl flex items-center justify-center font-[950] text-sm",
+                              index === 0 ? "bg-amber-400 text-slate-900" :
                                 index === 1 ? "bg-slate-300 text-slate-900" :
-                                index === 2 ? "bg-amber-700/50 text-amber-200 border border-amber-600/30" :
-                                "bg-slate-800 text-slate-500"
+                                  index === 2 ? "bg-amber-700/50 text-amber-200 border border-amber-600/30" :
+                                    "bg-slate-800 text-slate-500"
                             )}>
                               {index === 0 ? <Crown size={18} strokeWidth={3} /> : index + 1}
                             </div>
@@ -273,8 +449,8 @@ export default function App() {
 
                           <div className="flex-1 min-w-0">
                             <div className={cn(
-                                "font-bold text-lg truncate flex items-center gap-2", 
-                                p.uid === uid ? "text-blue-400" : "text-white"
+                              "font-bold text-lg truncate flex items-center gap-2",
+                              p.uid === uid ? "text-blue-400" : "text-white"
                             )}>
                               {p.name}
                               {p.uid === uid && (
@@ -284,9 +460,9 @@ export default function App() {
                           </div>
 
                           <div className="text-right">
-                             <div className="font-mono font-black text-2xl text-slate-200 tabular-nums">
-                                {p.score}
-                             </div>
+                            <div className="font-mono font-black text-2xl text-slate-200 tabular-nums">
+                              {p.score}
+                            </div>
                           </div>
                         </div>
                       ))}
