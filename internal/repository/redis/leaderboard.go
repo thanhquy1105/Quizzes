@@ -17,23 +17,23 @@ func NewLeaderboardStore(rdb *redis.Client) *LeaderboardStore {
 	return &LeaderboardStore{rdb: rdb}
 }
 
-func lbKey(quizID string) string {
-	return fmt.Sprintf("leaderboard:%s", quizID)
+func lbKey(sessionCode string) string {
+	return fmt.Sprintf("leaderboard:session:%s", sessionCode)
 }
 
-func (r *LeaderboardStore) Add(ctx context.Context, quizID, uid string) error {
-	return r.rdb.ZAddNX(ctx, lbKey(quizID), redis.Z{
+func (r *LeaderboardStore) Add(ctx context.Context, sessionCode, uid string) error {
+	return r.rdb.ZAddNX(ctx, lbKey(sessionCode), redis.Z{
 		Score:  0,
 		Member: uid,
 	}).Err()
 }
 
-func (r *LeaderboardStore) IncrBy(ctx context.Context, quizID, uid string, delta float64) error {
-	return r.rdb.ZIncrBy(ctx, lbKey(quizID), delta, uid).Err()
+func (r *LeaderboardStore) IncrBy(ctx context.Context, sessionCode, uid string, delta float64) error {
+	return r.rdb.ZIncrBy(ctx, lbKey(sessionCode), delta, uid).Err()
 }
 
-func (r *LeaderboardStore) GetRanked(ctx context.Context, quizID string) ([]model.RankedEntry, error) {
-	res, err := r.rdb.ZRevRangeWithScores(ctx, lbKey(quizID), 0, -1).Result()
+func (r *LeaderboardStore) GetRanked(ctx context.Context, sessionCode string) ([]model.RankedEntry, error) {
+	res, err := r.rdb.ZRevRangeWithScores(ctx, lbKey(sessionCode), 0, -1).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -47,6 +47,6 @@ func (r *LeaderboardStore) GetRanked(ctx context.Context, quizID string) ([]mode
 	return entries, nil
 }
 
-func (r *LeaderboardStore) Delete(ctx context.Context, quizID string) error {
-	return r.rdb.Del(ctx, lbKey(quizID)).Err()
+func (r *LeaderboardStore) Delete(ctx context.Context, sessionCode string) error {
+	return r.rdb.Del(ctx, lbKey(sessionCode)).Err()
 }

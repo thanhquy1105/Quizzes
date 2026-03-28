@@ -39,6 +39,7 @@ type Question struct {
 	CreatedAt time.Time      `gorm:"default:CURRENT_TIMESTAMP"`
 	Answers   []Answer       `gorm:"foreignKey:QuestionID"`
 	DeletedAt gorm.DeletedAt `gorm:"index"`
+	Answered  bool           `gorm:"-" json:"answered"`
 }
 
 type Answer struct {
@@ -53,7 +54,7 @@ type QuizSession struct {
 	ID          uint64 `gorm:"primaryKey;autoIncrement"`
 	QuizID      uint64 `gorm:"index"`
 	SessionCode string `gorm:"size:20;uniqueIndex"`
-	Status      string `gorm:"size:20;default:'waiting'"` // waiting, running, finished
+	Name        string `gorm:"size:255"`
 	StartedAt   *time.Time
 	EndedAt     *time.Time
 	CreatedAt   time.Time      `gorm:"default:CURRENT_TIMESTAMP"`
@@ -74,7 +75,7 @@ type UserAnswer struct {
 	UserID     uint64    `gorm:"uniqueIndex:idx_answer"`
 	QuestionID uint64    `gorm:"uniqueIndex:idx_answer"`
 	AnswerID   uint64    `gorm:"index"`
-	IsCorrect  bool      `gorm:"default:false"`
+	IsCorrect  bool      `gorm:"default:false" json:"-"`
 	Score      int       `gorm:"default:0"`
 	AnsweredAt time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 }

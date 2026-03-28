@@ -56,7 +56,7 @@ func main() {
 	}()
 
 	// Start WebSocket Server
-	wsServer := quiz.NewQuizServer(cfg, rdb, tokenStore, tokenMaker)
+	wsServer := quiz.NewQuizServer(cfg, rdb, tokenStore, quizStore, userStore, tokenMaker)
 	go func() {
 		fmt.Printf("WebSocket server starting on %s\n", cfg.Server.GorillaWSAddr)
 		if err := wsServer.Start(); err != nil {

@@ -26,7 +26,7 @@ demo-web/dist/
 .env.development.local
 .env.test.local
 .env.production.local
-demo-web/.env
+# demo-web/.env
 
 # IDE and Editor files
 .idea/

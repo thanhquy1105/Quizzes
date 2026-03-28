@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"btaskee-quiz/internal/model"
 	"btaskee-quiz/internal/repository"
 	"btaskee-quiz/internal/server"
 	"btaskee-quiz/internal/server/proto"
@@ -19,15 +20,20 @@ type Participant struct {
 }
 
 type Session struct {
-	QuizID       string
+	QuizID       uint64
+	SessionCode  string
+	DBID         uint64
 	mu           sync.RWMutex
 	Participants map[string]*Participant
 	lb           repository.LeaderboardStore
+	quiz         *model.Quiz // cached quiz
 }
 
-func NewSession(quizID string, lb repository.LeaderboardStore) *Session {
+func NewSession(quizID uint64, sessionCode string, dbID uint64, lb repository.LeaderboardStore) *Session {
 	return &Session{
 		QuizID:       quizID,
+		SessionCode:  sessionCode,
+		DBID:         dbID,
 		Participants: make(map[string]*Participant),
 		lb:           lb,
 	}
@@ -42,17 +48,17 @@ func (s *Session) Join(uid, name string, conn server.Conn) {
 	}
 	s.mu.Unlock()
 
-	_ = s.lb.Add(context.Background(), s.QuizID, uid)
+	_ = s.lb.Add(context.Background(), s.SessionCode, uid)
 }
 
-func (s *Session) SubmitAnswer(uid string, isCorrect bool) {
-	if isCorrect {
-		_ = s.lb.IncrBy(context.Background(), s.QuizID, uid, 10)
+func (s *Session) SubmitAnswer(uid string, points int) {
+	if points > 0 {
+		_ = s.lb.IncrBy(context.Background(), s.SessionCode, uid, float64(points))
 	}
 }
 
 func (s *Session) GetLeaderboard() []*Participant {
-	entries, err := s.lb.GetRanked(context.Background(), s.QuizID)
+	entries, err := s.lb.GetRanked(context.Background(), s.SessionCode)
 	if err != nil {
 		return nil
 	}
@@ -78,9 +84,10 @@ func (s *Session) GetLeaderboard() []*Participant {
 func (s *Session) BroadcastLeaderboard() {
 	leaderboard := s.GetLeaderboard()
 	data, err := json.Marshal(map[string]interface{}{
-		"type":        "leaderboard",
-		"quiz_id":     s.QuizID,
-		"leaderboard": leaderboard,
+		"type":         "leaderboard",
+		"quiz_id":      s.QuizID,
+		"session_code": s.SessionCode,
+		"leaderboard":  leaderboard,
 	})
 	if err != nil {
 		return
@@ -123,19 +130,27 @@ func NewManager(lb repository.LeaderboardStore) *Manager {
 	}
 }
 
-func (m *Manager) GetSession(quizID string) *Session {
+func (m *Manager) GetSession(sessionCode string, quizID uint64, dbID uint64) *Session {
 	m.mu.RLock()
-	s, ok := m.sessions[quizID]
+	s, ok := m.sessions[sessionCode]
 	m.mu.RUnlock()
 
 	if !ok {
 		m.mu.Lock()
-		s, ok = m.sessions[quizID]
+		s, ok = m.sessions[sessionCode]
 		if !ok {
-			s = NewSession(quizID, m.lb)
-			m.sessions[quizID] = s
+			s = NewSession(quizID, sessionCode, dbID, m.lb)
+			m.sessions[sessionCode] = s
 		}
 		m.mu.Unlock()
 	}
 	return s
+}
+
+// GetSessionByCode looks up an existing in-memory session without creating one.
+// Returns nil if the session has not been initialized yet.
+func (m *Manager) GetSessionByCode(sessionCode string) *Session {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.sessions[sessionCode]
 }

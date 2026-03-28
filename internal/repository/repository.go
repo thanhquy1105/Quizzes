@@ -9,10 +9,10 @@ import (
 )
 
 type LeaderboardStore interface {
-	Add(ctx context.Context, quizID, uid string) error
-	IncrBy(ctx context.Context, quizID, uid string, delta float64) error
-	GetRanked(ctx context.Context, quizID string) ([]model.RankedEntry, error)
-	Delete(ctx context.Context, quizID string) error
+	Add(ctx context.Context, sessionCode, uid string) error
+	IncrBy(ctx context.Context, sessionCode, uid string, delta float64) error
+	GetRanked(ctx context.Context, sessionCode string) ([]model.RankedEntry, error)
+	Delete(ctx context.Context, sessionCode string) error
 }
 
 type UserStore interface {
@@ -24,6 +24,16 @@ type UserStore interface {
 type QuizStore interface {
 	List(ctx context.Context) ([]model.Quiz, error)
 	Get(ctx context.Context, id uint64) (*model.Quiz, error)
+	FindActiveSessionByCode(ctx context.Context, code string) (*model.QuizSession, error)
+	CreateSession(ctx context.Context, session *model.QuizSession) error
+	AddParticipant(ctx context.Context, participant *model.SessionParticipant) error
+	SaveUserAnswer(ctx context.Context, answer *model.UserAnswer) error
+	UpdateParticipantScore(ctx context.Context, sessionID, userID uint64, score int) error
+	ListSessions(ctx context.Context) ([]model.QuizSession, error)
+	GetSessionByCode(ctx context.Context, code string) (*model.QuizSession, error)
+	IsParticipant(ctx context.Context, sessionID, userID uint64) (bool, error)
+	GetUserAnswers(ctx context.Context, sessionID, userID uint64) ([]model.UserAnswer, error)
+	GetUserAnswer(ctx context.Context, sessionID, userID, questionID uint64) (*model.UserAnswer, error)
 }
 
 type TokenStore interface {

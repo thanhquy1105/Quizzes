@@ -2,10 +2,13 @@ package mysql
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"btaskee-quiz/internal/model"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type QuizStore struct {
@@ -38,4 +41,87 @@ func (s *QuizStore) Get(ctx context.Context, id uint64) (*model.Quiz, error) {
 		return nil, err
 	}
 	return &quiz, nil
+}
+
+func (s *QuizStore) FindActiveSessionByCode(ctx context.Context, code string) (*model.QuizSession, error) {
+	var session model.QuizSession
+	now := time.Now()
+	err := s.db.WithContext(ctx).
+		Where("session_code = ? AND (started_at IS NULL OR started_at <= ?) AND (ended_at IS NULL OR ended_at >= ?)", code, now, now).
+		First(&session).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &session, nil
+}
+
+func (s *QuizStore) CreateSession(ctx context.Context, session *model.QuizSession) error {
+	return s.db.WithContext(ctx).Create(session).Error
+}
+
+func (s *QuizStore) AddParticipant(ctx context.Context, participant *model.SessionParticipant) error {
+	return s.db.WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "session_id"}, {Name: "user_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"joined_at", "score"}),
+		}).
+		Create(participant).Error
+}
+
+func (s *QuizStore) SaveUserAnswer(ctx context.Context, answer *model.UserAnswer) error {
+	return s.db.WithContext(ctx).Create(answer).Error
+}
+
+func (s *QuizStore) UpdateParticipantScore(ctx context.Context, sessionID, userID uint64, score int) error {
+	return s.db.WithContext(ctx).
+		Model(&model.SessionParticipant{}).
+		Where("session_id = ? AND user_id = ?", sessionID, userID).
+		Update("score", gorm.Expr("score + ?", score)).Error
+}
+
+func (s *QuizStore) ListSessions(ctx context.Context) ([]model.QuizSession, error) {
+	var sessions []model.QuizSession
+	err := s.db.WithContext(ctx).
+		Where("deleted_at IS NULL").
+		Find(&sessions).Error
+	return sessions, err
+}
+
+func (s *QuizStore) GetSessionByCode(ctx context.Context, code string) (*model.QuizSession, error) {
+	var session model.QuizSession
+	err := s.db.WithContext(ctx).Where("session_code = ?", code).First(&session).Error
+	return &session, err
+}
+
+func (s *QuizStore) IsParticipant(ctx context.Context, sessionID, userID uint64) (bool, error) {
+	var count int64
+	err := s.db.WithContext(ctx).Model(&model.SessionParticipant{}).
+		Where("session_id = ? AND user_id = ?", sessionID, userID).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (s *QuizStore) GetUserAnswers(ctx context.Context, sessionID, userID uint64) ([]model.UserAnswer, error) {
+	var answers []model.UserAnswer
+	err := s.db.WithContext(ctx).
+		Where("session_id = ? AND user_id = ?", sessionID, userID).
+		Find(&answers).Error
+	return answers, err
+}
+
+func (s *QuizStore) GetUserAnswer(ctx context.Context, sessionID, userID, questionID uint64) (*model.UserAnswer, error) {
+	var answer model.UserAnswer
+	err := s.db.WithContext(ctx).
+		Where("session_id = ? AND user_id = ? AND question_id = ?", sessionID, userID, questionID).
+		First(&answer).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &answer, nil
 }

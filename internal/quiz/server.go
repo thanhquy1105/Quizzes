@@ -19,11 +19,13 @@ type QuizServer struct {
 	Server  *server.Server
 	Manager *Manager
 
+	quizStore  repository.QuizStore
+	userStore  repository.UserStore
 	tokenStore repository.TokenStore
 	tokenMaker token.IMaker
 }
 
-func NewQuizServer(cfg *config.Config, rdb *goredis.Client, tokenStore repository.TokenStore, tokenMaker token.IMaker) *QuizServer {
+func NewQuizServer(cfg *config.Config, rdb *goredis.Client, tokenStore repository.TokenStore, quizStore repository.QuizStore, userStore repository.UserStore, tokenMaker token.IMaker) *QuizServer {
 	lb := redis.NewLeaderboardStore(rdb)
 
 	s := &QuizServer{
@@ -37,6 +39,8 @@ func NewQuizServer(cfg *config.Config, rdb *goredis.Client, tokenStore repositor
 			server.WithLogDetail(cfg.Server.LogDetail),
 		),
 		Manager:    NewManager(lb),
+		quizStore:  quizStore,
+		userStore:  userStore,
 		tokenStore: tokenStore,
 		tokenMaker: tokenMaker,
 	}

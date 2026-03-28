@@ -42,7 +42,7 @@ CREATE TABLE quiz_sessions (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     quiz_id BIGINT,
     session_code VARCHAR(20) UNIQUE,
-    status ENUM('waiting', 'running', 'finished') DEFAULT 'waiting',
+    name VARCHAR(255),
     started_at TIMESTAMP NULL,
     ended_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -59,6 +59,12 @@ CREATE TABLE session_participants (
     UNIQUE KEY uniq_user_session (session_id, user_id),
     INDEX idx_session (session_id)
 );
+
+-- Seed Data (Quiz Sessions)
+INSERT INTO quiz_sessions (quiz_id, session_code, name, started_at, ended_at) VALUES
+(1, 'GK-FALL-2024', 'General Knowledge - Autumn 2024', '2026-01-01 00:00:00', '2026-12-31 23:59:59'),
+(1, 'GK-PRO-99', 'Elite Knowledge Warriors', '2026-01-01 00:00:00', '2026-12-31 23:59:59'),
+(2, 'GO-REF-01', 'Go Refactoring Masters', '2026-01-01 00:00:00', '2026-12-31 23:59:59');
 
 CREATE TABLE user_answers (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,

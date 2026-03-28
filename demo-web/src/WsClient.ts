@@ -194,9 +194,19 @@ export class WsClient {
         console.log(parsedBody)
 
         const handler = this.handlers.get(id.toString());
-        if (handler) {
-            handler({ id, status, timestamp, body: parsedBody });
-            this.handlers.delete(id.toString());
+        const rejecter = this.rejecters.get(id.toString());
+
+        this.handlers.delete(id.toString());
+        this.rejecters.delete(id.toString());
+
+        const STATUS_OK = 0;
+        if (status !== STATUS_OK) {
+            const errMsg = typeof parsedBody === 'string'
+                ? parsedBody
+                : (parsedBody as any)?.error || (parsedBody as any)?.message || `Server error (status ${status})`;
+            if (rejecter) rejecter(new Error(errMsg));
+        } else {
+            if (handler) handler({ id, status, timestamp, body: parsedBody });
         }
     }
 
@@ -225,8 +235,10 @@ export class WsClient {
         this.ws.send(buffer);
     }
 
+    private rejecters: Map<string, (err: any) => void> = new Map();
+
     request(path: string, body: any): Promise<any> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const requestId = BigInt(Math.floor(Math.random() * 1000000));
             const pathBytes = new TextEncoder().encode(path);
             const bodyStr = typeof body === 'object' ? JSON.stringify(body) : String(body);
@@ -254,6 +266,7 @@ export class WsClient {
             uint8.set(bodyBytes, offset);
 
             this.handlers.set(requestId.toString(), resolve);
+            this.rejecters.set(requestId.toString(), reject);
             this.send(MsgType.Request, uint8);
         });
     }

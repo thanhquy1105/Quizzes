@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { WsClient, MsgType } from './WsClient';
-import { Trophy, Users, Send, Zap, LogIn, Crown, Activity, AlertCircle, RefreshCw } from 'lucide-react';
+import { Trophy, Users, Zap, LogIn, Crown, Activity, AlertCircle, RefreshCw } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -14,12 +14,34 @@ interface Participant {
   score: number;
 }
 
+interface Answer {
+  ID: number;
+  Content: string;
+  IsCorrect: boolean;
+}
+
+interface Question {
+  ID: number;
+  Content: string;
+  Answers: Answer[];
+  answered: boolean;
+}
+
 interface Quiz {
   ID: number;
   Title: string;
   Description: string;
   question_count: number;
   participant_count: number;
+  Questions?: Question[];
+}
+
+interface QuizSession {
+  ID: number;
+  QuizID: number;
+  SessionCode: string;
+  Name: string;
+  CreatedAt: string;
 }
 
 function SocketStatus({ status }: { status: 'disconnected' | 'connecting' | 'connected' | 'error' }) {
@@ -53,10 +75,14 @@ export default function App() {
   const [joined, setJoined] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [sessions, setSessions] = useState<QuizSession[]>([]);
   const [leaderboard, setLeaderboard] = useState<Participant[]>([]);
   const [lastScoreChange, setLastScoreChange] = useState<string | null>(null);
   const [status, setStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [quizError, setQuizError] = useState<string | null>(null);
+  const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
+  const [activeSessionCode, setActiveSessionCode] = useState<string>('');
   const clientRef = useRef<WsClient | null>(null);
 
   const [accessToken, setAccessToken] = useState('');
@@ -152,11 +178,19 @@ export default function App() {
 
       const quizData = await quizResponse.json();
       setQuizzes(quizData.quizzes || []);
+
+      // 3. Fetch Sessions (HTTP)
+      const sessionResponse = await callApi(`${import.meta.env.VITE_API_BASE_URL}/sessions`, {}, initialToken);
+      if (sessionResponse.ok) {
+        const sessionData = await sessionResponse.json();
+        setSessions(sessionData.sessions || []);
+      }
+
       setIsLoggedIn(true);
 
       // 3. Connect to WebSocket (with Token Authentication & Retry on Refresh)
       const client = new WsClient(import.meta.env.VITE_WS_URL);
-      
+
       try {
         await client.connect(username, initialToken);
       } catch (wsErr) {
@@ -168,7 +202,7 @@ export default function App() {
           throw wsErr;
         }
       }
-      
+
       clientRef.current = client;
       setStatus('connected');
 
@@ -193,19 +227,21 @@ export default function App() {
     }
   }, [name, username]);
 
-  const joinQuiz = async (selectedQuizId: string) => {
+  const joinQuiz = async (sessionCode: string) => {
     if (!clientRef.current) return;
     try {
-      setQuizId(selectedQuizId);
-      await clientRef.current.request('/join', {
-        quiz_id: selectedQuizId,
-        uid: username,
-        name: name
+      setActiveSessionCode(sessionCode);
+      const quizResult = await clientRef.current.request('/join', {
+        session_code: sessionCode,
       });
+
+      const fullQuiz = quizResult.body;
+      setActiveQuiz(fullQuiz);
       setJoined(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to join quiz", err);
-      setErrorMsg("Failed to join the selected quiz.");
+      const msg = err.message || "Failed to join the selected quiz.";
+      setErrorMsg(msg);
     }
   };
 
@@ -215,18 +251,31 @@ export default function App() {
     };
   }, []);
 
-  const submitScore = async () => {
+  const submitAnswer = async (questionId: number, answerId: number) => {
     if (!clientRef.current) return;
     try {
       await clientRef.current.request('/answer', {
-        quiz_id: quizId,
-        uid: uid,
-        is_correct: true
+        session_code: activeSessionCode,
+        question_id: questionId,
+        answer_id: answerId,
       });
       setLastScoreChange(uid);
       setTimeout(() => setLastScoreChange(null), 800);
-    } catch (err) {
-      console.error("Failed to submit score", err);
+      // Mark question as answered locally so it disappears from the list
+      setActiveQuiz(prev => {
+        if (!prev?.Questions) return prev;
+        return {
+          ...prev,
+          Questions: prev.Questions.map(q =>
+            q.ID === questionId ? { ...q, answered: true } : q
+          ),
+        };
+      });
+    } catch (err: any) {
+      console.error("Failed to submit answer", err);
+      const msg = err?.message || 'Failed to submit answer';
+      setQuizError(msg);
+      setTimeout(() => setQuizError(null), 4000);
     }
   };
 
@@ -317,43 +366,56 @@ export default function App() {
             </div>
           </div>
         ) : !joined ? (
-          <div className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="glass p-10 rounded-[2.5rem] border-white/10 flex flex-col gap-8">
-              <div className="flex flex-col items-center text-center gap-4">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-3xl font-black tracking-tight tracking-widest uppercase">Choose Your Arena</h2>
-                  <SocketStatus status={status} />
-                </div>
-                <p className="text-slate-400 font-medium">Select a quiz to start competing in real-time</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {quizzes.map(quiz => (
-                  <button
-                    key={quiz.ID}
-                    onClick={() => joinQuiz(quiz.ID.toString())}
-                    className="group relative bg-slate-900/40 border border-white/5 rounded-[2rem] p-8 text-left transition-all hover:bg-blue-500/5 hover:border-blue-500/30 hover:shadow-[0_0_40px_rgba(59,130,246,0.1)] active:scale-[0.98]"
-                  >
-                    <div className="absolute top-6 right-6 p-3 rounded-2xl bg-blue-500/10 text-blue-400 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1">
-                      <Send size={20} />
+          <div className="w-full max-w-4xl space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            {/* Active Sessions Section */}
+            {sessions.length > 0 && (
+              <div className="glass p-10 rounded-[2.5rem] border-white/5 flex flex-col gap-8 bg-blue-500/5">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-blue-400 uppercase tracking-[0.2em] font-black text-[10px]">
+                      <Activity size={12} className="animate-pulse" />
+                      Live Sessions
                     </div>
-                    <div className="space-y-4">
-                      <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">{quiz.Title}</h3>
-                      <p className="text-slate-400 text-sm leading-relaxed">{quiz.Description}</p>
-                      
-                      <div className="flex items-center gap-4 pt-2">
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-blue-400/80 uppercase tracking-wider bg-blue-500/5 px-2.5 py-1 rounded-lg border border-blue-500/10">
-                          <Zap size={10} /> {quiz.question_count} Questions
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400/80 uppercase tracking-wider bg-emerald-500/5 px-2.5 py-1 rounded-lg border border-emerald-500/10">
-                          <Users size={10} /> {quiz.participant_count} Players
+                    <h2 className="text-3xl font-black tracking-tight">QUIZ SESSIONS</h2>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {errorMsg && (
+                       <div className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-red-400 animate-in fade-in slide-in-from-right-4">
+                          <AlertCircle size={14} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">{errorMsg}</span>
+                       </div>
+                    )}
+                    <SocketStatus status={status} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {sessions.map(session => {
+                    const quiz = quizzes.find(q => q.ID === session.QuizID);
+                    return (
+                      <div key={session.ID} className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-blue-500/30 transition-all group/session">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex justify-between items-start">
+                            <span className="text-xs font-mono text-blue-400/70">{session.SessionCode}</span>
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase">Active</span>
+                          </div>
+                          <h4 className="font-bold text-white group-hover/session:text-blue-300 transition-colors uppercase tracking-tight">{session.Name || `Session #${session.ID}`}</h4>
+                          <p className="text-slate-500 text-xs font-medium">{quiz?.Title || 'General Quiz'}</p>
+                          <button
+                            onClick={() => joinQuiz(session.SessionCode)}
+                            className="mt-2 w-full py-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-white text-xs font-black transition-all uppercase tracking-widest border border-blue-500/20"
+                          >
+                            Join Session
+                          </button>
                         </div>
                       </div>
-                    </div>
-                  </button>
-                ))}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
+
+
           </div>
         ) : (
           <div className="flex flex-col lg:row gap-10 w-full animate-in fade-in zoom-in-95 duration-700">
@@ -365,30 +427,79 @@ export default function App() {
                     <Zap size={240} />
                   </div>
 
-                    <div className="flex justify-between items-center bg-slate-900/40 p-4 rounded-2xl border border-white/5">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-blue-400 uppercase tracking-[0.2em] font-black text-[10px]">
-                          <Activity size={12} className="animate-pulse" />
-                          Live Session
-                        </div>
-                        <h2 className="text-3xl font-black tracking-tight">{currentQuiz?.Title || quizId}</h2>
+                  <div className="flex justify-between items-center bg-slate-900/40 p-4 rounded-2xl border border-white/5">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-blue-400 uppercase tracking-[0.2em] font-black text-[10px]">
+                        <Activity size={12} className="animate-pulse" />
+                        Live Session
                       </div>
-
-                      <SocketStatus status={status} />
+                      <h2 className="text-3xl font-black tracking-tight">{activeQuiz?.Title || quizId}</h2>
+                      <h3 className='text-2xs'>{activeQuiz?.Description}</h3>
                     </div>
 
-                  <div className="bg-slate-900/60 border border-white/5 rounded-[2rem] p-10 flex flex-col gap-8 relative group">
-                    <div className="space-y-4">
-                      <h4 className="text-2xl font-bold text-white leading-tight">Ready for the challenge?</h4>
-                      <p className="text-slate-400 text-lg leading-relaxed max-w-md">Simulate a correct answer to climb the leaderboard in real-time. Every correct strike earns you points.</p>
+                    <SocketStatus status={status} />
+                  </div>
+
+                  {/* In-quiz error banner */}
+                  {quizError && (
+                    <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-2xl px-5 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <AlertCircle className="text-red-400 shrink-0" size={18} />
+                      <span className="text-sm font-semibold text-red-300 flex-1">{quizError}</span>
+                      <button onClick={() => setQuizError(null)} className="text-red-400/60 hover:text-red-300 transition-colors text-lg leading-none">&times;</button>
                     </div>
-                    <button
-                      onClick={submitScore}
-                      className="w-full h-24 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 bg-[length:200%_auto] hover:bg-right transition-all duration-500 text-slate-950 font-[950] text-2xl rounded-2xl shadow-[0_20px_50px_rgba(16,185,129,0.25)] active:scale-[0.98] flex items-center justify-center gap-4 relative overflow-hidden"
-                    >
-                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      SUBMIT STRIKE <Send size={28} strokeWidth={3} />
-                    </button>
+                  )}
+
+                  <div className="bg-slate-900/60 border border-white/5 rounded-[2rem] p-10 flex flex-col gap-8 relative group min-h-[400px]">
+                    {(() => {
+                      const unanswered = activeQuiz?.Questions?.filter(q => !q.answered) ?? [];
+                      const total = activeQuiz?.Questions?.length ?? 0;
+                      const current = unanswered[0];
+                      return current ? (
+                        <>
+                          <div className="space-y-6">
+                            <div className="flex items-center gap-3">
+                              <div className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-black uppercase tracking-widest">
+                                Question {total - unanswered.length + 1} of {total}
+                              </div>
+                            </div>
+                            <h4 className="text-3xl font-bold text-white leading-tight min-h-[4rem]">
+                              {current.Content}
+                            </h4>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-4">
+                            {current.Answers.map((answer: any, idx: number) => (
+                              <button
+                                key={answer.ID}
+                                onClick={() => submitAnswer(current.ID, answer.ID)}
+                                className="group/btn relative w-full p-6 bg-slate-800/40 border border-white/5 rounded-2xl text-left transition-all hover:bg-blue-500/10 hover:border-blue-500/30 active:scale-[0.99] flex items-center gap-4"
+                              >
+                                <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center font-black text-slate-400 group-hover/btn:bg-blue-500/20 group-hover/btn:text-blue-400 transition-colors">
+                                  {String.fromCharCode(65 + idx)}
+                                </div>
+                                <span className="text-lg font-medium text-slate-200 group-hover/btn:text-white transition-colors">{answer.Content}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-12 text-center gap-6 animate-in fade-in zoom-in-95 duration-500">
+                          <div className="w-24 h-24 rounded-[2rem] bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                            <Trophy size={48} />
+                          </div>
+                          <div className="space-y-2">
+                            <h4 className="text-3xl font-black text-white">Quiz Completed!</h4>
+                            <p className="text-slate-400 text-lg">You've answered all questions. Check your final rank in the Hall of Fame!</p>
+                          </div>
+                          <button
+                            onClick={() => setJoined(false)}
+                            className="px-8 py-3 bg-white text-slate-950 font-bold rounded-xl hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-all active:scale-95"
+                          >
+                            BACK TO ARENA
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-8 text-slate-400 pt-4 border-t border-white/5 mt-auto">
@@ -397,7 +508,7 @@ export default function App() {
                       <span className="text-lg">{leaderboard.length} <span className="text-slate-500 font-medium ml-1">Elite Players</span></span>
                     </div>
                     <div className="h-8 w-px bg-white/5" />
-                    <div className="text-slate-500 font-medium">Session ID: <span className="font-mono text-blue-400/80 ml-1">{uid}</span></div>
+                    <div className="text-slate-500 font-medium">USER ID: <span className="font-mono text-blue-400/80 ml-1">{uid}</span></div>
                   </div>
                 </div>
               </div>
@@ -457,6 +568,7 @@ export default function App() {
                                 <span className="bg-blue-500/20 text-[10px] text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20 tracking-[0.1em] font-black uppercase">YOU</span>
                               )}
                             </div>
+                            <div className="font-mono text-[11px] text-slate-500 truncate">@{p.uid}</div>
                           </div>
 
                           <div className="text-right">

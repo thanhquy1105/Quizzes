@@ -137,6 +137,22 @@ func (h *Handler) GetDetailedQuiz(c *gin.Context) {
 	c.JSON(http.StatusOK, quiz)
 }
 
+type ListSessionsResp struct {
+	Sessions []model.QuizSession `json:"sessions"`
+}
+
+func (h *Handler) ListSessions(c *gin.Context) {
+	sessions, err := h.quizStore.ListSessions(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, ListSessionsResp{
+		Sessions: sessions,
+	})
+}
+
 type RefreshReq struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
