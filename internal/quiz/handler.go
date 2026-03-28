@@ -19,15 +19,12 @@ type JoinReq struct {
 func (s *QuizServer) handleJoin(ctx *server.Context) {
 	s.Server.Debug("handleJoin started", zap.String("body", string(ctx.Body())))
 
-	// 1. Get authenticated UID from connection context
-	connCtx, ok := ctx.Conn().Context().(*server.ConnContext)
-	if !ok || connCtx == nil {
-		ctx.WriteErrorAndStatus(errors.New("unauthorized"), proto.StatusError)
+	username, err := s.getAuthUsername(ctx)
+	if err != nil {
+		ctx.WriteErrorAndStatus(err, proto.StatusError)
 		return
 	}
-	uid := connCtx.UID()
 
-	// 2. Parse request — only session_code needed
 	var req JoinReq
 	if err := json.Unmarshal(ctx.Body(), &req); err != nil {
 		s.Server.Error("handleJoin unmarshal error", zap.Error(err))
@@ -61,9 +58,9 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 	}
 
 	// 5. Fetch user (Name comes from DB, not from client)
-	user, err := s.userStore.GetByUsername(context.Background(), uid)
+	user, err := s.userStore.GetByUsername(context.Background(), username)
 	if err != nil {
-		s.Server.Error("handleJoin: user not found", zap.String("uid", uid), zap.Error(err))
+		s.Server.Error("handleJoin: user not found", zap.String("username", username), zap.Error(err))
 		ctx.WriteErrorAndStatus(errors.New("user not found"), proto.StatusError)
 		return
 	}
@@ -112,10 +109,10 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 
 	// 7. Join in-memory session (keyed by session_code)
 	session := s.Manager.GetSession(dbSession.SessionCode, quiz.ID, dbSession.ID)
-	session.Join(uid, user.Name, ctx.Conn())
+	session.Join(username, user.Name, user.ID, ctx.Conn())
 	s.Server.Metrics().JoinQuizInc()
 
-	s.Server.Debug("handleJoin: joined", zap.String("uid", uid), zap.String("code", dbSession.SessionCode))
+	s.Server.Debug("handleJoin: joined", zap.String("username", username), zap.String("code", dbSession.SessionCode))
 
 	quizData, err := json.Marshal(quiz)
 	if err != nil {
@@ -128,8 +125,6 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 	s.Server.Debug("handleJoin finished")
 }
 
-// AnswerReq - session_code identifies the session; UID from connection context.
-// IsCorrect is NOT trusted from client — backend verifies against DB.
 type AnswerReq struct {
 	SessionCode string `json:"session_code"`
 	QuestionID  uint64 `json:"question_id"`
@@ -137,13 +132,12 @@ type AnswerReq struct {
 }
 
 func (s *QuizServer) handleAnswer(ctx *server.Context) {
-	// 1. Get authenticated UID from connection context
-	connCtx, ok := ctx.Conn().Context().(*server.ConnContext)
-	if !ok || connCtx == nil {
-		ctx.WriteErrorAndStatus(errors.New("unauthorized"), proto.StatusError)
+	username, err := s.getAuthUsername(ctx)
+	if err != nil {
+		s.Server.Error("handleAnswer: unauthorized", zap.Error(err))
+		ctx.WriteErrorAndStatus(err, proto.StatusError)
 		return
 	}
-	uid := connCtx.UID()
 
 	var req AnswerReq
 	if err := json.Unmarshal(ctx.Body(), &req); err != nil {
@@ -152,10 +146,10 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 		return
 	}
 
-	// 2. Find user in DB
-	user, err := s.userStore.GetByUsername(context.Background(), uid)
+	// 2. Load user
+	user, err := s.userStore.GetByUsername(context.Background(), username)
 	if err != nil {
-		s.Server.Error("handleAnswer: user not found", zap.String("uid", uid), zap.Error(err))
+		s.Server.Error("handleAnswer: user not found", zap.String("username", username), zap.Error(err))
 		ctx.WriteErrorAndStatus(errors.New("user not found"), proto.StatusError)
 		return
 	}
@@ -182,27 +176,12 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 		return
 	}
 
-	quiz, err := s.quizStore.Get(context.Background(), session.QuizID)
+	// 4. Verify answer server-side via distributed Redis validation
+	points, isCorrect, err := s.quizStore.ValidateAnswer(context.Background(), session.QuizID, req.QuestionID, req.AnswerID)
 	if err != nil {
-		s.Server.Error("handleAnswer: quiz not found", zap.Uint64("quizID", session.QuizID), zap.Error(err))
-		ctx.WriteErrorAndStatus(errors.New("quiz not found"), proto.StatusError)
+		s.Server.Error("handleAnswer: validation error", zap.Error(err))
+		ctx.WriteErrorAndStatus(errors.New("validation failed"), proto.StatusError)
 		return
-	}
-
-	// 4. Verify answer server-side — do NOT trust client's is_correct
-	points := 0
-	isCorrect := false
-	for _, q := range quiz.Questions {
-		if q.ID == req.QuestionID {
-			for _, a := range q.Answers {
-				if a.ID == req.AnswerID && a.IsCorrect {
-					isCorrect = true
-					points = q.Point
-					break
-				}
-			}
-			break
-		}
 	}
 
 	answer := &model.UserAnswer{
@@ -229,8 +208,7 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 		}
 
 		// 6. Update in-memory leaderboard
-		session.SubmitAnswer(uid, points)
-
+		session.SubmitAnswer(username, points)
 		session.BroadcastLeaderboard()
 	}
 

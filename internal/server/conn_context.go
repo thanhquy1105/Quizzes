@@ -3,19 +3,19 @@ package server
 import "go.uber.org/atomic"
 
 type ConnContext struct {
-	uid   atomic.String
-	token atomic.String
+	username atomic.String
+	token    atomic.String
 }
 
-func NewConnContext(uid string, token string) *ConnContext {
+func NewConnContext(username string, token string) *ConnContext {
 	c := &ConnContext{}
-	c.uid.Store(uid)
+	c.username.Store(username)
 	c.token.Store(token)
 	return c
 }
 
-func (c *ConnContext) UID() string {
-	return c.uid.Load()
+func (c *ConnContext) Username() string {
+	return c.username.Load()
 }
 
 func (c *ConnContext) Token() string {

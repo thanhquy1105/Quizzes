@@ -125,3 +125,29 @@ func (s *QuizStore) GetUserAnswer(ctx context.Context, sessionID, userID, questi
 	}
 	return &answer, nil
 }
+
+func (s *QuizStore) ValidateAnswer(ctx context.Context, quizID, questionID, answerID uint64) (int, bool, error) {
+	var answer model.Answer
+	err := s.db.WithContext(ctx).
+		Joins("JOIN questions ON questions.id = answers.question_id").
+		Where("questions.quiz_id = ? AND answers.question_id = ? AND answers.id = ?", quizID, questionID, answerID).
+		First(&answer).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, false, nil
+		}
+		return 0, false, err
+	}
+
+	if !answer.IsCorrect {
+		return 0, false, nil
+	}
+
+	var question model.Question
+	if err := s.db.WithContext(ctx).First(&question, questionID).Error; err != nil {
+		return 0, false, err
+	}
+
+	return question.Point, true, nil
+}

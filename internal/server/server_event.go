@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"btaskee-quiz/pkg/log"
 	"btaskee-quiz/internal/server/proto"
+	"btaskee-quiz/pkg/log"
 
 	"github.com/panjf2000/gnet/v2"
 	"go.uber.org/zap"
@@ -105,9 +105,9 @@ func (s *Server) handleHeartbeat(conn Conn) {
 
 func (s *Server) handleConnack(conn Conn, req *proto.Connect) {
 
-	s.Info("", zap.String("from", req.Uid))
-	conn.SetContext(NewConnContext(req.Uid, ""))
-	s.connManager.AddConn(req.Uid, conn)
+	s.Info("", zap.String("from", req.Username))
+	conn.SetContext(NewConnContext(req.Username, ""))
+	s.connManager.AddConn(req.Username, conn)
 
 	s.routeMapLock.RLock()
 	h, ok := s.routeMap[s.opts.ConnPath]
@@ -317,7 +317,7 @@ func (s *Server) OnClose(conn gnet.Conn, err error) (action gnet.Action) {
 		return
 	}
 
-	s.connManager.RemoveConn(connCtx.UID())
+	s.connManager.RemoveConn(connCtx.Username())
 	s.routeMapLock.RLock()
 	h, ok := s.routeMap[s.opts.ClosePath]
 	s.routeMapLock.RUnlock()

@@ -4,8 +4,8 @@ import (
 	"net"
 	"time"
 
-	"btaskee-quiz/pkg/log"
 	"btaskee-quiz/internal/server/proto"
+	"btaskee-quiz/pkg/log"
 
 	"github.com/panjf2000/gnet/v2"
 	"go.uber.org/zap"

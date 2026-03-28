@@ -32,7 +32,7 @@ export class WsClient {
     private connectResolver: (() => void) | null = null;
     private connectRejecter: ((err: any) => void) | null = null;
 
-    connect(uid: string, token: string): Promise<void> {
+    connect(username: string, token: string): Promise<void> {
         return new Promise((resolve, reject) => {
             this.connectResolver = resolve;
             this.connectRejecter = reject;
@@ -42,7 +42,7 @@ export class WsClient {
             this.ws.onopen = () => {
                 console.log("Connected to WsServer, authenticating...");
                 this.startHeartbeat();
-                this.sendConnect(uid, token);
+                this.sendConnect(username, token);
             };
 
             this.ws.onerror = (err) => {
@@ -63,14 +63,14 @@ export class WsClient {
         });
     }
 
-    private sendConnect(uid: string, token: string) {
+    private sendConnect(username: string, token: string) {
         const requestId = BigInt(Math.floor(Math.random() * 1000000));
-        const uidBytes = new TextEncoder().encode(uid);
+        const usernameBytes = new TextEncoder().encode(username);
         const tokenBytes = new TextEncoder().encode(token);
         const bodyBytes = new Uint8Array(0); // Empty body for now
 
-        // Connect binary: Id(8) + UidLen(2) + Uid + TokenLen(2) + Token + BodyLen(4) + Body (LittleEndian)
-        const totalLen = 8 + 2 + uidBytes.length + 2 + tokenBytes.length + 4 + bodyBytes.length;
+        // Connect binary: Id(8) + UsernameLen(2) + Username + TokenLen(2) + Token + BodyLen(4) + Body (LittleEndian)
+        const totalLen = 8 + 2 + usernameBytes.length + 2 + tokenBytes.length + 4 + bodyBytes.length;
         const buffer = new ArrayBuffer(totalLen);
         const view = new DataView(buffer);
         const uint8 = new Uint8Array(buffer);
@@ -79,10 +79,10 @@ export class WsClient {
         view.setBigUint64(offset, requestId, true);
         offset += 8;
 
-        view.setUint16(offset, uidBytes.length, true);
+        view.setUint16(offset, usernameBytes.length, true);
         offset += 2;
-        uint8.set(uidBytes, offset);
-        offset += uidBytes.length;
+        uint8.set(usernameBytes, offset);
+        offset += usernameBytes.length;
 
         view.setUint16(offset, tokenBytes.length, true);
         offset += 2;
@@ -239,12 +239,33 @@ export class WsClient {
 
     request(path: string, body: any): Promise<any> {
         return new Promise((resolve, reject) => {
+            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                return reject(new Error("Network error: WebSocket is not connected"));
+            }
+
             const requestId = BigInt(Math.floor(Math.random() * 1000000));
             const pathBytes = new TextEncoder().encode(path);
             const bodyStr = typeof body === 'object' ? JSON.stringify(body) : String(body);
             const bodyBytes = new TextEncoder().encode(bodyStr);
 
             console.log("request", path, body)
+
+            // 5 second timeout
+            const timeout = setTimeout(() => {
+                this.handlers.delete(requestId.toString());
+                this.rejecters.delete(requestId.toString());
+                reject(new Error("Request timed out: No response from server"));
+            }, 5000);
+
+            const wrappedStore = (data: any) => {
+                clearTimeout(timeout);
+                resolve(data);
+            };
+
+            const wrappedReject = (err: any) => {
+                clearTimeout(timeout);
+                reject(err);
+            };
 
             // Request binary: Id(8) + PathLen(2) + Path + BodyLen(4) + Body (LittleEndian)
             const totalLen = 8 + 2 + pathBytes.length + 4 + bodyBytes.length;
@@ -265,8 +286,8 @@ export class WsClient {
             offset += 4;
             uint8.set(bodyBytes, offset);
 
-            this.handlers.set(requestId.toString(), resolve);
-            this.rejecters.set(requestId.toString(), reject);
+            this.handlers.set(requestId.toString(), wrappedStore);
+            this.rejecters.set(requestId.toString(), wrappedReject);
             this.send(MsgType.Request, uint8);
         });
     }

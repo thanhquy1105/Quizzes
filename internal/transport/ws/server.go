@@ -113,7 +113,7 @@ func (s *Server) handleGorillaWS(w http.ResponseWriter, r *http.Request) {
 	if s.handler != nil {
 		s.handler.ActiveConnInc()
 	}
-	
+
 	defer func() {
 		_ = gConn.Close()
 		if s.handler != nil {

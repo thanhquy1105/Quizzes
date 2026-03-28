@@ -7,8 +7,8 @@ import (
 )
 
 type RankedEntry struct {
-	UID   string
-	Score float64
+	Username string  `json:"username"`
+	Score    float64 `json:"score"`
 }
 
 type User struct {
@@ -46,7 +46,7 @@ type Answer struct {
 	ID         uint64         `gorm:"primaryKey;autoIncrement"`
 	QuestionID uint64         `gorm:"index"`
 	Content    string         `gorm:"type:text"`
-	IsCorrect  bool           `gorm:"default:false"`
+	IsCorrect  bool           `gorm:"default:false" json:"-"`
 	DeletedAt  gorm.DeletedAt `gorm:"index"`
 }
 

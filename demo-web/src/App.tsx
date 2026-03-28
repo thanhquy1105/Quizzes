@@ -9,7 +9,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 interface Participant {
-  uid: string;
+  username: string;
   name: string;
   score: number;
 }
@@ -44,6 +44,51 @@ interface QuizSession {
   CreatedAt: string;
 }
 
+interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
+function ToastComponent({ toast, onClose }: { toast: Toast, onClose: (id: string) => void }) {
+  const icons = {
+    success: <Zap className="text-emerald-400" size={20} />,
+    error: <AlertCircle className="text-red-400" size={20} />,
+    info: <Activity className="text-blue-400" size={20} />,
+  };
+
+  const borders = {
+    success: 'border-emerald-500/20',
+    error: 'border-red-500/20',
+    info: 'border-blue-500/20',
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => onClose(toast.id), 4000);
+    return () => clearTimeout(timer);
+  }, [toast.id, onClose]);
+
+  return (
+    <div className={cn(
+      "glass px-6 py-4 rounded-2xl border flex items-center gap-4 min-w-[320px] max-w-md shadow-2xl animate-in slide-in-from-right-full duration-500",
+      borders[toast.type]
+    )}>
+      <div className="shrink-0 p-2 rounded-xl bg-white/5">
+        {icons[toast.type]}
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-bold text-white leading-tight">{toast.message}</p>
+      </div>
+      <button 
+        onClick={() => onClose(toast.id)}
+        className="text-white/40 hover:text-white transition-colors text-xl font-light"
+      >
+        &times;
+      </button>
+    </div>
+  );
+}
+
 function SocketStatus({ status }: { status: 'disconnected' | 'connecting' | 'connected' | 'error' }) {
   const statusConfig = {
     connected: { color: 'bg-emerald-500', text: 'Connected', shadow: 'shadow-[0_0_12px_rgba(16,185,129,0.5)]' },
@@ -70,8 +115,6 @@ function SocketStatus({ status }: { status: 'disconnected' | 'connecting' | 'con
 export default function App() {
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
-  const [quizId, setQuizId] = useState('');
-  const [uid, setUid] = useState('');
   const [joined, setJoined] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -80,10 +123,19 @@ export default function App() {
   const [lastScoreChange, setLastScoreChange] = useState<string | null>(null);
   const [status, setStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [quizError, setQuizError] = useState<string | null>(null);
   const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
   const [activeSessionCode, setActiveSessionCode] = useState<string>('');
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const clientRef = useRef<WsClient | null>(null);
+
+  const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts(prev => [...prev.slice(-4), { id, message, type }]); // Keep last 5 toasts
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
 
   const [accessToken, setAccessToken] = useState('');
   const [refreshToken, setRefreshToken] = useState('');
@@ -110,7 +162,7 @@ export default function App() {
         setIsLoggedIn(false);
         setJoined(false);
         setStatus('disconnected');
-        setErrorMsg("Session expired. Please login again.");
+        addToast("Session expired. Please login again.", 'error');
         return null;
       }
     } catch (err) {
@@ -167,19 +219,9 @@ export default function App() {
       const initialToken = loginData.access_token;
       setAccessToken(initialToken);
       setRefreshToken(loginData.refresh_token);
-      setUid(username);
+      setUsername(username);
 
-      // 2. Fetch Quizzes (HTTP with Auth & Auto-Refresh)
-      const quizResponse = await callApi(`${import.meta.env.VITE_API_BASE_URL}/quizzes`, {}, initialToken);
-
-      if (!quizResponse.ok) {
-        throw new Error(`Failed to fetch quizzes: ${quizResponse.status}`);
-      }
-
-      const quizData = await quizResponse.json();
-      setQuizzes(quizData.quizzes || []);
-
-      // 3. Fetch Sessions (HTTP)
+      // 2. Fetch Sessions (HTTP)
       const sessionResponse = await callApi(`${import.meta.env.VITE_API_BASE_URL}/sessions`, {}, initialToken);
       if (sessionResponse.ok) {
         const sessionData = await sessionResponse.json();
@@ -220,12 +262,15 @@ export default function App() {
           }
         }
       });
+      addToast("Successfully logged in!", "success");
     } catch (err) {
       console.error(err);
       setStatus('error');
-      setErrorMsg(err instanceof Error ? err.message : "Failed to connect or login to Quiz Server.");
+      const msg = err instanceof Error ? err.message : "Failed to connect or login to Quiz Server.";
+      setErrorMsg(msg);
+      addToast(msg, 'error');
     }
-  }, [name, username]);
+  }, [name, username, addToast, refreshSession]);
 
   const joinQuiz = async (sessionCode: string) => {
     if (!clientRef.current) return;
@@ -241,7 +286,7 @@ export default function App() {
     } catch (err: any) {
       console.error("Failed to join quiz", err);
       const msg = err.message || "Failed to join the selected quiz.";
-      setErrorMsg(msg);
+      addToast(msg, 'error');
     }
   };
 
@@ -259,7 +304,7 @@ export default function App() {
         question_id: questionId,
         answer_id: answerId,
       });
-      setLastScoreChange(uid);
+      setLastScoreChange(username);
       setTimeout(() => setLastScoreChange(null), 800);
       // Mark question as answered locally so it disappears from the list
       setActiveQuiz(prev => {
@@ -271,15 +316,13 @@ export default function App() {
           ),
         };
       });
+      addToast("Answer submitted!", 'success');
     } catch (err: any) {
       console.error("Failed to submit answer", err);
       const msg = err?.message || 'Failed to submit answer';
-      setQuizError(msg);
-      setTimeout(() => setQuizError(null), 4000);
+      addToast(msg, 'error');
     }
   };
-
-  const currentQuiz = quizzes.find(q => q.ID.toString() === quizId);
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100 p-4 font-sans selection:bg-blue-500/30 selection:text-blue-200 overflow-x-hidden relative">
@@ -433,21 +476,12 @@ export default function App() {
                         <Activity size={12} className="animate-pulse" />
                         Live Session
                       </div>
-                      <h2 className="text-3xl font-black tracking-tight">{activeQuiz?.Title || quizId}</h2>
+                      <h2 className="text-3xl font-black tracking-tight">{activeQuiz?.Title}</h2>
                       <h3 className='text-2xs'>{activeQuiz?.Description}</h3>
                     </div>
 
                     <SocketStatus status={status} />
                   </div>
-
-                  {/* In-quiz error banner */}
-                  {quizError && (
-                    <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-2xl px-5 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <AlertCircle className="text-red-400 shrink-0" size={18} />
-                      <span className="text-sm font-semibold text-red-300 flex-1">{quizError}</span>
-                      <button onClick={() => setQuizError(null)} className="text-red-400/60 hover:text-red-300 transition-colors text-lg leading-none">&times;</button>
-                    </div>
-                  )}
 
                   <div className="bg-slate-900/60 border border-white/5 rounded-[2rem] p-10 flex flex-col gap-8 relative group min-h-[400px]">
                     {(() => {
@@ -508,7 +542,7 @@ export default function App() {
                       <span className="text-lg">{leaderboard.length} <span className="text-slate-500 font-medium ml-1">Elite Players</span></span>
                     </div>
                     <div className="h-8 w-px bg-white/5" />
-                    <div className="text-slate-500 font-medium">USER ID: <span className="font-mono text-blue-400/80 ml-1">{uid}</span></div>
+                    <div className="text-slate-500 font-medium">USERNAME: <span className="font-mono text-blue-400/80 ml-1">{username}</span></div>
                   </div>
                 </div>
               </div>
@@ -536,11 +570,11 @@ export default function App() {
                     <div className="flex flex-col relative z-10">
                       {leaderboard.map((p, index) => (
                         <div
-                          key={p.uid}
+                          key={p.username}
                           className={cn(
                             "flex items-center gap-5 p-5 border-b border-white/5 transition-all duration-300 relative group",
-                            p.uid === uid ? "bg-blue-500/10" : "hover:bg-white/[0.02]",
-                            lastScoreChange === p.uid && "after:absolute after:inset-0 after:bg-emerald-500/20 after:animate-in after:fade-in after:duration-700"
+                            p.username === username ? "bg-blue-500/10" : "hover:bg-white/[0.02]",
+                            lastScoreChange === p.username && "after:absolute after:inset-0 after:bg-emerald-500/20 after:animate-in after:fade-in after:duration-700"
                           )}
                         >
                           <div className="w-10 h-10 shrink-0 flex items-center justify-center relative">
@@ -561,14 +595,14 @@ export default function App() {
                           <div className="flex-1 min-w-0">
                             <div className={cn(
                               "font-bold text-lg truncate flex items-center gap-2",
-                              p.uid === uid ? "text-blue-400" : "text-white"
+                              p.username === username ? "text-blue-400" : "text-white"
                             )}>
                               {p.name}
-                              {p.uid === uid && (
+                              {p.username === username && (
                                 <span className="bg-blue-500/20 text-[10px] text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20 tracking-[0.1em] font-black uppercase">YOU</span>
                               )}
                             </div>
-                            <div className="font-mono text-[11px] text-slate-500 truncate">@{p.uid}</div>
+                            <div className="font-mono text-[11px] text-slate-500 truncate">@{p.username}</div>
                           </div>
 
                           <div className="text-right">
@@ -585,6 +619,15 @@ export default function App() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Toast Container */}
+      <div className="fixed bottom-8 right-8 z-[100] flex flex-col gap-4 pointer-events-none">
+        {toasts.map(toast => (
+          <div key={toast.id} className="pointer-events-auto">
+            <ToastComponent toast={toast} onClose={removeToast} />
+          </div>
+        ))}
       </div>
     </div>
   );

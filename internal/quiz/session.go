@@ -6,17 +6,17 @@ import (
 	"sync"
 	"time"
 
-	"btaskee-quiz/internal/model"
 	"btaskee-quiz/internal/repository"
 	"btaskee-quiz/internal/server"
 	"btaskee-quiz/internal/server/proto"
 )
 
 type Participant struct {
-	UID   string      `json:"uid"`
-	Name  string      `json:"name"`
-	Score float64     `json:"score"`
-	Conn  server.Conn `json:"-"`
+	Username string      `json:"username"`
+	Name     string      `json:"name"`
+	UserID   uint64      `json:"user_id"`
+	Score    float64     `json:"score"`
+	Conn     server.Conn `json:"-"`
 }
 
 type Session struct {
@@ -26,35 +26,45 @@ type Session struct {
 	mu           sync.RWMutex
 	Participants map[string]*Participant
 	lb           repository.LeaderboardStore
-	quiz         *model.Quiz // cached quiz
+	us           repository.UserStore
 }
 
-func NewSession(quizID uint64, sessionCode string, dbID uint64, lb repository.LeaderboardStore) *Session {
+func NewSession(quizID uint64, sessionCode string, dbID uint64, lb repository.LeaderboardStore, us repository.UserStore) *Session {
 	return &Session{
 		QuizID:       quizID,
 		SessionCode:  sessionCode,
 		DBID:         dbID,
 		Participants: make(map[string]*Participant),
 		lb:           lb,
+		us:           us,
 	}
 }
 
-func (s *Session) Join(uid, name string, conn server.Conn) {
+func (s *Session) Join(username, name string, userID uint64, conn server.Conn) {
 	s.mu.Lock()
-	s.Participants[uid] = &Participant{
-		UID:  uid,
-		Name: name,
-		Conn: conn,
+	s.Participants[username] = &Participant{
+		Username: username,
+		Name:     name,
+		UserID:   userID,
+		Conn:     conn,
 	}
 	s.mu.Unlock()
 
-	_ = s.lb.Add(context.Background(), s.SessionCode, uid)
+	_ = s.lb.Add(context.Background(), s.SessionCode, username)
 }
 
-func (s *Session) SubmitAnswer(uid string, points int) {
+func (s *Session) SubmitAnswer(username string, points int) {
 	if points > 0 {
-		_ = s.lb.IncrBy(context.Background(), s.SessionCode, uid, float64(points))
+		_ = s.lb.IncrBy(context.Background(), s.SessionCode, username, float64(points))
 	}
+}
+
+// GetParticipant retrieves a joined participant by their Username from memory.
+func (s *Session) GetParticipant(username string) (*Participant, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	p, ok := s.Participants[username]
+	return p, ok
 }
 
 func (s *Session) GetLeaderboard() []*Participant {
@@ -63,19 +73,34 @@ func (s *Session) GetLeaderboard() []*Participant {
 		return nil
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
 	result := make([]*Participant, 0, len(entries))
 	for _, e := range entries {
-		p, ok := s.Participants[e.UID]
+		s.mu.RLock()
+		p, ok := s.Participants[e.Username]
+		s.mu.RUnlock()
+
 		if !ok {
-			continue
+			// Query DB if missing from memory
+			user, err := s.us.GetByUsername(context.Background(), e.Username)
+			if err != nil {
+				continue
+			}
+			p = &Participant{
+				Username: e.Username,
+				Name:     user.Name,
+				UserID:   user.ID,
+				Score:    e.Score,
+			}
+			// Cache in memory (inactive participant)
+			s.mu.Lock()
+			s.Participants[e.Username] = p
+			s.mu.Unlock()
 		}
+
 		result = append(result, &Participant{
-			UID:   p.UID,
-			Name:  p.Name,
-			Score: e.Score,
+			Username: p.Username,
+			Name:     p.Name,
+			Score:    e.Score,
 		})
 	}
 	return result
@@ -121,12 +146,14 @@ type Manager struct {
 	mu       sync.RWMutex
 	sessions map[string]*Session
 	lb       repository.LeaderboardStore
+	us       repository.UserStore
 }
 
-func NewManager(lb repository.LeaderboardStore) *Manager {
+func NewManager(lb repository.LeaderboardStore, us repository.UserStore) *Manager {
 	return &Manager{
 		sessions: make(map[string]*Session),
 		lb:       lb,
+		us:       us,
 	}
 }
 
@@ -139,7 +166,7 @@ func (m *Manager) GetSession(sessionCode string, quizID uint64, dbID uint64) *Se
 		m.mu.Lock()
 		s, ok = m.sessions[sessionCode]
 		if !ok {
-			s = NewSession(quizID, sessionCode, dbID, m.lb)
+			s = NewSession(quizID, sessionCode, dbID, m.lb, m.us)
 			m.sessions[sessionCode] = s
 		}
 		m.mu.Unlock()

@@ -70,6 +70,7 @@ func (h *Handler) Login(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+
 	}
 
 	accessToken, accessPayload, err := h.tokenMaker.CreateToken(user.Username, h.accessDur, token.TokenTypeSessionToken)
@@ -178,25 +179,25 @@ func (h *Handler) Refresh(c *gin.Context) {
 
 	_ = h.tokenStore.Delete(c.Request.Context(), req.RefreshToken, token.TokenTypeRefreshToken)
 
-	accessToken, accessPayload, err := h.tokenMaker.CreateToken(payload.UserID, h.accessDur, token.TokenTypeSessionToken)
+	accessToken, accessPayload, err := h.tokenMaker.CreateToken(payload.Username, h.accessDur, token.TokenTypeSessionToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create access token"})
 		return
 	}
 
-	refreshToken, refreshPayload, err := h.tokenMaker.CreateToken(payload.UserID, h.refreshDur, token.TokenTypeRefreshToken)
+	refreshToken, refreshPayload, err := h.tokenMaker.CreateToken(payload.Username, h.refreshDur, token.TokenTypeRefreshToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create refresh token"})
 		return
 	}
 
-	err = h.tokenStore.Save(c.Request.Context(), accessToken, payload.UserID, h.accessDur, token.TokenTypeSessionToken)
+	err = h.tokenStore.Save(c.Request.Context(), accessToken, payload.Username, h.accessDur, token.TokenTypeSessionToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save access token session"})
 		return
 	}
 
-	err = h.tokenStore.Save(c.Request.Context(), refreshToken, payload.UserID, h.refreshDur, token.TokenTypeRefreshToken)
+	err = h.tokenStore.Save(c.Request.Context(), refreshToken, payload.Username, h.refreshDur, token.TokenTypeRefreshToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save refresh token session"})
 		return
@@ -237,7 +238,7 @@ func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user_id", payload.UserID)
+		c.Set("user_id", payload.Username)
 		c.Next()
 	}
 }

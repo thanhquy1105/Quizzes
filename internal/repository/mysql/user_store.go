@@ -20,9 +20,9 @@ func (s *UserStore) Save(ctx context.Context, user *model.User) error {
 	return s.db.WithContext(ctx).Save(user).Error
 }
 
-func (s *UserStore) Get(ctx context.Context, uid string) (*model.User, error) {
+func (s *UserStore) Get(ctx context.Context, username string) (*model.User, error) {
 	var user model.User
-	err := s.db.WithContext(ctx).Where("id = ?", uid).First(&user).Error
+	err := s.db.WithContext(ctx).Where("username = ?", username).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -30,10 +30,5 @@ func (s *UserStore) Get(ctx context.Context, uid string) (*model.User, error) {
 }
 
 func (s *UserStore) GetByUsername(ctx context.Context, username string) (*model.User, error) {
-	var user model.User
-	err := s.db.WithContext(ctx).Where("username = ?", username).First(&user).Error
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
+	return s.Get(ctx, username)
 }

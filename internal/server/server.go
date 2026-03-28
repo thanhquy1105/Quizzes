@@ -11,9 +11,9 @@ import (
 
 	"github.com/RussellLuo/timingwheel"
 
-	"btaskee-quiz/pkg/net"
 	"btaskee-quiz/internal/server/proto"
 	"btaskee-quiz/internal/transport/ws"
+	"btaskee-quiz/pkg/net"
 
 	"github.com/lni/goutils/syncutil"
 	"github.com/panjf2000/ants/v2"
@@ -45,8 +45,8 @@ type Server struct {
 	stopper        *syncutil.Stopper
 	batchRead      int
 
-	wsEngine *net.Engine
-	ready    chan struct{}
+	wsEngine    *net.Engine
+	ready       chan struct{}
 	wsTransport *ws.Server
 }
 
@@ -264,7 +264,7 @@ func (s *Server) onClose(conn Conn) {
 		return
 	}
 
-	s.connManager.RemoveConn(connCtx.UID())
+	s.connManager.RemoveConn(connCtx.Username())
 	s.routeMapLock.RLock()
 	h, ok := s.routeMap[s.opts.ClosePath]
 	s.routeMapLock.RUnlock()

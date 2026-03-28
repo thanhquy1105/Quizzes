@@ -29,8 +29,8 @@ func main() {
 		fmt.Printf("Failed to connect to mysql: %v\n", err)
 		return
 	}
-	userStore := mysqlrepo.NewUserStore(db)
-	quizStore := mysqlrepo.NewQuizStore(db)
+	dbUserStore := mysqlrepo.NewUserStore(db)
+	dbQuizStore := mysqlrepo.NewQuizStore(db)
 
 	rdb := goredis.NewClient(&goredis.Options{
 		Addr:     cfg.Redis.Addr,
@@ -39,6 +39,10 @@ func main() {
 	})
 	tokenStore := redisrepo.NewTokenStore(rdb)
 
+	// Wrap stores with Redis cache
+	userStore := redisrepo.NewUserCache(rdb, dbUserStore)
+	quizStoreCached := redisrepo.NewQuizCache(rdb, dbQuizStore)
+
 	tokenMaker, err := token.NewJWTMaker(cfg.Token.SecretKey)
 	if err != nil {
 		fmt.Printf("Failed to create token maker: %v\n", err)
@@ -46,7 +50,7 @@ func main() {
 	}
 
 	// Start Gin HTTP Server
-	httpHandler := http.NewHandler(userStore, quizStore, tokenStore, tokenMaker, cfg.Token.AccessTokenDuration, cfg.Token.RefreshTokenDuration)
+	httpHandler := http.NewHandler(userStore, quizStoreCached, tokenStore, tokenMaker, cfg.Token.AccessTokenDuration, cfg.Token.RefreshTokenDuration)
 	httpServer := http.NewServer(cfg.Server.HTTPAddr, httpHandler)
 	go func() {
 		fmt.Printf("HTTP server starting on %s\n", cfg.Server.HTTPAddr)
@@ -56,7 +60,7 @@ func main() {
 	}()
 
 	// Start WebSocket Server
-	wsServer := quiz.NewQuizServer(cfg, rdb, tokenStore, quizStore, userStore, tokenMaker)
+	wsServer := quiz.NewQuizServer(cfg, rdb, tokenStore, dbQuizStore, dbUserStore, tokenMaker)
 	go func() {
 		fmt.Printf("WebSocket server starting on %s\n", cfg.Server.GorillaWSAddr)
 		if err := wsServer.Start(); err != nil {

@@ -38,9 +38,9 @@ func NewQuizServer(cfg *config.Config, rdb *goredis.Client, tokenStore repositor
 			server.WithRequestTimeout(cfg.Server.RequestTimeout),
 			server.WithLogDetail(cfg.Server.LogDetail),
 		),
-		Manager:    NewManager(lb),
-		quizStore:  quizStore,
-		userStore:  userStore,
+		Manager:    NewManager(lb, userStore),
+		quizStore:  redis.NewQuizCache(rdb, quizStore),
+		userStore:  redis.NewUserCache(rdb, userStore),
 		tokenStore: tokenStore,
 		tokenMaker: tokenMaker,
 	}
@@ -96,8 +96,8 @@ func (s *QuizServer) handleConnect(ctx *server.Context) {
 	}
 
 	// Valid session
-	ctx.Conn().SetContext(server.NewConnContext(req.Uid, req.Token))
-	s.Server.Debug("session context initialized", zap.String("uid", req.Uid))
+	ctx.Conn().SetContext(server.NewConnContext(req.Username, req.Token))
+	s.Server.Debug("session context initialized", zap.String("username", req.Username))
 	ctx.WriteConnack(&proto.Connack{
 		Id:     req.Id,
 		Status: proto.StatusOK,

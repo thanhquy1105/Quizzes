@@ -151,18 +151,18 @@ func (r *Response) Unmarshal(data []byte) error {
 }
 
 type Connect struct {
-	Id    uint64
-	Uid   string
-	Token string
-	Body  []byte
+	Id       uint64 `json:"id"`
+	Username string `json:"username"`
+	Token    string `json:"token"`
+	Body     []byte
 }
 
 func (c *Connect) Marshal() ([]byte, error) {
-	uidLen := len(c.Uid)
+	usernameLen := len(c.Username)
 	tokenLen := len(c.Token)
 	bodyLen := len(c.Body)
 
-	totalSize := IdSize + UidLenSize + uidLen + TokenLenSize + tokenLen + BodyLenSize + bodyLen
+	totalSize := IdSize + UidLenSize + usernameLen + TokenLenSize + tokenLen + BodyLenSize + bodyLen
 	buffer := make([]byte, totalSize)
 
 	offset := 0
@@ -170,10 +170,10 @@ func (c *Connect) Marshal() ([]byte, error) {
 	binary.LittleEndian.PutUint64(buffer[offset:], c.Id)
 	offset += IdSize
 
-	binary.LittleEndian.PutUint16(buffer[offset:], uint16(uidLen))
+	binary.LittleEndian.PutUint16(buffer[offset:], uint16(usernameLen))
 	offset += UidLenSize
-	copy(buffer[offset:], c.Uid)
-	offset += uidLen
+	copy(buffer[offset:], c.Username)
+	offset += usernameLen
 
 	binary.LittleEndian.PutUint16(buffer[offset:], uint16(tokenLen))
 	offset += TokenLenSize
@@ -197,13 +197,13 @@ func (c *Connect) Unmarshal(data []byte) error {
 	c.Id = binary.LittleEndian.Uint64(data[offset:])
 	offset += IdSize
 
-	uidLen := binary.LittleEndian.Uint16(data[offset:])
+	usernameLen := binary.LittleEndian.Uint16(data[offset:])
 	offset += UidLenSize
-	if len(data) < offset+int(uidLen) {
-		return errors.New("invalid Uid length")
+	if len(data) < offset+int(usernameLen) {
+		return errors.New("invalid Username length")
 	}
-	c.Uid = string(data[offset : offset+int(uidLen)])
-	offset += int(uidLen)
+	c.Username = string(data[offset : offset+int(usernameLen)])
+	offset += int(usernameLen)
 
 	tokenLen := binary.LittleEndian.Uint16(data[offset:])
 	offset += TokenLenSize

@@ -47,7 +47,7 @@ func NewDB(cfg *config.MySQLConfig) (*gorm.DB, error) {
 		// Note: Some drivers might need splitting by ';', but with multiStatements=true it should work
 		err = db.Exec(string(sqlFile)).Error
 		if err != nil {
-			// If executing the whole file fails, try splitting if needed, 
+			// If executing the whole file fails, try splitting if needed,
 			// but for now we trust multiStatements=true
 			return nil, fmt.Errorf("failed to execute seed/seed.sql: %w", err)
 		}

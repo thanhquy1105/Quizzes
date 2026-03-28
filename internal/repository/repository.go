@@ -9,15 +9,15 @@ import (
 )
 
 type LeaderboardStore interface {
-	Add(ctx context.Context, sessionCode, uid string) error
-	IncrBy(ctx context.Context, sessionCode, uid string, delta float64) error
+	Add(ctx context.Context, sessionCode, username string) error
+	IncrBy(ctx context.Context, sessionCode, username string, delta float64) error
 	GetRanked(ctx context.Context, sessionCode string) ([]model.RankedEntry, error)
 	Delete(ctx context.Context, sessionCode string) error
 }
 
 type UserStore interface {
 	Save(ctx context.Context, user *model.User) error
-	Get(ctx context.Context, uid string) (*model.User, error)
+	Get(ctx context.Context, username string) (*model.User, error)
 	GetByUsername(ctx context.Context, username string) (*model.User, error)
 }
 
@@ -34,6 +34,7 @@ type QuizStore interface {
 	IsParticipant(ctx context.Context, sessionID, userID uint64) (bool, error)
 	GetUserAnswers(ctx context.Context, sessionID, userID uint64) ([]model.UserAnswer, error)
 	GetUserAnswer(ctx context.Context, sessionID, userID, questionID uint64) (*model.UserAnswer, error)
+	ValidateAnswer(ctx context.Context, quizID, questionID, answerID uint64) (int, bool, error)
 }
 
 type TokenStore interface {

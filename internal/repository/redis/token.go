@@ -30,8 +30,8 @@ func tokenKey(t string, tokenType token.TokenType) string {
 	return fmt.Sprintf(AccessTokenPrefix, t)
 }
 
-func (r *TokenStore) Save(ctx context.Context, t string, uid string, duration time.Duration, tokenType token.TokenType) error {
-	return r.rdb.Set(ctx, tokenKey(t, tokenType), uid, duration).Err()
+func (r *TokenStore) Save(ctx context.Context, tokenStr string, username string, duration time.Duration, tokenType token.TokenType) error {
+	return r.rdb.Set(ctx, tokenKey(tokenStr, tokenType), username, duration).Err()
 }
 
 func (r *TokenStore) Exists(ctx context.Context, t string, tokenType token.TokenType) (bool, error) {
