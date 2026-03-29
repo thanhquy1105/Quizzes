@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"btaskee-quiz/internal/model"
+	"btaskee-quiz/internal/repository"
 	"btaskee-quiz/internal/server"
 	"btaskee-quiz/internal/server/proto"
 
@@ -37,7 +38,7 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 		return
 	}
 
-	// 3. Find active session by code (time-window validated)
+	// Find active session by code (time-window validated)
 	dbSession, err := s.quizStore.FindActiveSessionByCode(context.Background(), req.SessionCode)
 	if err != nil {
 		s.Server.Error("handleJoin: error finding session", zap.Error(err))
@@ -49,7 +50,7 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 		return
 	}
 
-	// 4. Fetch quiz (QuizID comes from the session record)
+	// Fetch quiz (QuizID comes from the session record)
 	quiz, err := s.quizStore.Get(context.Background(), dbSession.QuizID)
 	if err != nil {
 		s.Server.Error("handleJoin: quiz not found", zap.Uint64("quizID", dbSession.QuizID), zap.Error(err))
@@ -57,7 +58,7 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 		return
 	}
 
-	// 5. Fetch user (Name comes from DB, not from client)
+	// Fetch user (Name comes from DB, not from client)
 	user, err := s.userStore.GetByUsername(context.Background(), username)
 	if err != nil {
 		s.Server.Error("handleJoin: user not found", zap.String("username", username), zap.Error(err))
@@ -65,7 +66,7 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 		return
 	}
 
-	// 6. Check participation & resume logic
+	// Check participation & resume logic
 	isPart, err := s.quizStore.IsParticipant(context.Background(), dbSession.ID, user.ID)
 	if err != nil {
 		s.Server.Error("handleJoin: error checking participation", zap.Error(err))
@@ -98,10 +99,12 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 
 		s.Server.Info("handleJoin: resuming session", zap.Uint64("userID", user.ID), zap.Int("answered", len(userAnswers)))
 	} else {
-		// First join: record participant
-		err = s.quizStore.AddParticipant(context.Background(), &model.SessionParticipant{
-			SessionID: dbSession.ID,
-			UserID:    user.ID,
+		// First join: record participant with transaction
+		err = s.quizStore.Transaction(context.Background(), func(txStore repository.QuizStore) error {
+			return txStore.AddParticipant(context.Background(), &model.SessionParticipant{
+				SessionID: dbSession.ID,
+				UserID:    user.ID,
+			})
 		})
 		if err != nil {
 			s.Server.Error("handleJoin: error adding participant", zap.Error(err))
@@ -148,7 +151,7 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 		return
 	}
 
-	// 2. Load user
+	// Load user
 	user, err := s.userStore.GetByUsername(context.Background(), username)
 	if err != nil {
 		s.Server.Error("handleAnswer: user not found", zap.String("username", username), zap.Error(err))
@@ -156,7 +159,7 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 		return
 	}
 
-	// 3. Get session metadata
+	// Get session metadata
 	meta, ok := s.Manager.GetSessionMeta(req.SessionCode)
 	if !ok {
 		s.Server.Error("handleAnswer: session metadata not found", zap.String("code", req.SessionCode))
@@ -164,57 +167,69 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 		return
 	}
 
-	// check if user already answered this question
-	userAnswer, err := s.quizStore.GetUserAnswer(context.Background(), meta.DBID, user.ID, req.QuestionID)
+	// Wrap database operations in a transaction
+	var points int
+	err = s.quizStore.Transaction(context.Background(), func(txStore repository.QuizStore) error {
+		// check if user already answered this question
+		userAnswer, err := txStore.GetUserAnswer(context.Background(), meta.DBID, user.ID, req.QuestionID)
+		if err != nil {
+			return err
+		}
+
+		if userAnswer != nil {
+			return errors.New("already_answered")
+		}
+
+		// Verify answer server-side
+		var isCorrect bool
+		points, isCorrect, err = txStore.ValidateAnswer(context.Background(), meta.QuizID, req.QuestionID, req.AnswerID)
+		if err != nil {
+			return err
+		}
+
+		answer := &model.UserAnswer{
+			SessionID:  meta.DBID,
+			UserID:     user.ID,
+			QuestionID: req.QuestionID,
+			AnswerID:   req.AnswerID,
+			IsCorrect:  isCorrect,
+			Score:      points,
+		}
+
+		if err := txStore.SaveUserAnswer(context.Background(), answer); err != nil {
+			return err
+		}
+
+		// Update score in DB
+		if points > 0 {
+			if err := txStore.UpdateParticipantScore(context.Background(), meta.DBID, user.ID, points); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		s.Server.Error("handleAnswer: user answer not found", zap.Uint64("userID", user.ID), zap.Uint64("questionID", req.QuestionID), zap.Error(err))
-		ctx.WriteErrorAndStatus(errors.New("user answer not found"), proto.StatusError)
-		return
-	}
-
-	if userAnswer != nil {
-		s.Server.Warn("handleAnswer: user already answered this question", zap.Uint64("userID", user.ID), zap.Uint64("questionID", req.QuestionID))
-		ctx.WriteErrorAndStatus(errors.New("user already answered this question"), proto.StatusAlreadyAnswered)
-		return
-	}
-
-	// 4. Verify answer server-side via distributed Redis validation
-	points, isCorrect, err := s.quizStore.ValidateAnswer(context.Background(), meta.QuizID, req.QuestionID, req.AnswerID)
-	if err != nil {
-		s.Server.Error("handleAnswer: validation error", zap.Error(err))
-		ctx.WriteErrorAndStatus(errors.New("validation failed"), proto.StatusError)
-		return
-	}
-
-	answer := &model.UserAnswer{
-		SessionID:  meta.DBID,
-		UserID:     user.ID,
-		QuestionID: req.QuestionID,
-		AnswerID:   req.AnswerID,
-		IsCorrect:  isCorrect,
-		Score:      points,
-	}
-
-	if err := s.quizStore.SaveUserAnswer(context.Background(), answer); err != nil {
-		s.Server.Error("handleAnswer: failed to save answer", zap.Error(err))
+		if err.Error() == "already_answered" {
+			s.Server.Warn("handleAnswer: user already answered this question", zap.Uint64("userID", user.ID), zap.Uint64("questionID", req.QuestionID))
+			ctx.WriteErrorAndStatus(errors.New("user already answered this question"), proto.StatusAlreadyAnswered)
+			return
+		}
+		s.Server.Error("handleAnswer: transaction failed", zap.Error(err))
 		ctx.WriteErrorAndStatus(errors.New("failed to save answer"), proto.StatusError)
 		return
 	}
 
-	// 5. Update score in DB
+	// 5. Update in-memory leaderboard (after transaction success)
 	if points > 0 {
-		if err := s.quizStore.UpdateParticipantScore(context.Background(), meta.DBID, user.ID, points); err != nil {
-			s.Server.Error("handleAnswer: failed to update score", zap.Error(err))
-			ctx.WriteErrorAndStatus(errors.New("failed to update score"), proto.StatusError)
-			return
+		if err := s.Manager.SubmitAnswer(req.SessionCode, username, points); err != nil {
+			s.Server.Error("handleAnswer: failed to update leaderboard", zap.Error(err))
+		} else {
+			s.Manager.BroadcastLeaderboard(req.SessionCode)
 		}
-
-		// 6. Update in-memory leaderboard
-		s.Manager.SubmitAnswer(req.SessionCode, username, points)
-		s.Manager.BroadcastLeaderboard(req.SessionCode)
 	}
 
 	s.Server.Metrics().AnswerQuizInc()
-
 	ctx.WriteOk()
 }

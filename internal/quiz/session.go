@@ -66,10 +66,11 @@ func (m *Manager) Join(sessionCode string, quizID, dbID uint64, username, name s
 	_ = m.lb.Add(context.Background(), sessionCode, username, score)
 }
 
-func (m *Manager) SubmitAnswer(sessionCode string, username string, points int) {
+func (m *Manager) SubmitAnswer(sessionCode string, username string, points int) error {
 	if points > 0 {
-		_ = m.lb.IncrBy(context.Background(), sessionCode, username, float64(points))
+		return m.lb.IncrBy(context.Background(), sessionCode, username, float64(points))
 	}
+	return nil
 }
 
 func (m *Manager) GetParticipant(sessionCode, username string) (*Participant, bool) {

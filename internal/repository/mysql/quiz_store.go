@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"btaskee-quiz/internal/model"
+	"btaskee-quiz/internal/repository"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -174,4 +175,11 @@ func (s *QuizStore) ListActiveSessions(ctx context.Context) ([]model.QuizSession
 		Find(&sessions).Error
 
 	return sessions, err
+}
+
+func (s *QuizStore) Transaction(ctx context.Context, fn func(repository.QuizStore) error) error {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txStore := NewQuizStore(tx)
+		return fn(txStore)
+	})
 }

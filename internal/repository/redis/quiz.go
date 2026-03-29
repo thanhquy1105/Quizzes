@@ -226,3 +226,13 @@ func (c *QuizCache) GetParticipantsWithScores(ctx context.Context, sessionCode s
 func (c *QuizCache) ListActiveSessions(ctx context.Context) ([]model.QuizSession, error) {
 	return c.store.ListActiveSessions(ctx)
 }
+
+func (c *QuizCache) Transaction(ctx context.Context, fn func(repository.QuizStore) error) error {
+	return c.store.Transaction(ctx, func(txStore repository.QuizStore) error {
+		txCache := &QuizCache{
+			rdb:   c.rdb,
+			store: txStore,
+		}
+		return fn(txCache)
+	})
+}
