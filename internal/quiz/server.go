@@ -3,6 +3,7 @@ package quiz
 import (
 	"context"
 	"errors"
+	"time"
 
 	"btaskee-quiz/internal/config"
 	"btaskee-quiz/internal/repository"
@@ -20,13 +21,14 @@ type QuizServer struct {
 	Manager *Manager
 
 	quizStore  repository.QuizStore
+	lbStore    repository.LeaderboardStore
 	userStore  repository.UserStore
 	tokenStore repository.TokenStore
 	tokenMaker token.IMaker
 }
 
 func NewQuizServer(cfg *config.Config, rdb *goredis.Client, tokenStore repository.TokenStore, quizStore repository.QuizStore, userStore repository.UserStore, tokenMaker token.IMaker) *QuizServer {
-	lb := redis.NewLeaderboardStore(rdb)
+	lb := redis.NewLeaderboardStore(rdb, quizStore)
 
 	s := &QuizServer{
 		Server: server.New(cfg.Server.TCPAddr,
@@ -40,6 +42,7 @@ func NewQuizServer(cfg *config.Config, rdb *goredis.Client, tokenStore repositor
 		),
 		Manager:    NewManager(lb, userStore),
 		quizStore:  redis.NewQuizCache(rdb, quizStore),
+		lbStore:    lb,
 		userStore:  redis.NewUserCache(rdb, userStore),
 		tokenStore: tokenStore,
 		tokenMaker: tokenMaker,
@@ -105,5 +108,49 @@ func (s *QuizServer) handleConnect(ctx *server.Context) {
 }
 
 func (s *QuizServer) Start() error {
+	go s.startReconciliation(context.Background())
 	return s.Server.Start()
+}
+
+func (s *QuizServer) startReconciliation(ctx context.Context) {
+	ticker := time.NewTicker(10 * time.Minute)
+	defer ticker.Stop()
+
+	s.Server.Info("starting periodic leaderboard reconciliation worker")
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.performReconciliation(ctx)
+		}
+	}
+}
+
+func (s *QuizServer) performReconciliation(ctx context.Context) {
+	activeSessions, err := s.quizStore.ListActiveSessions(ctx)
+	if err != nil {
+		s.Server.Error("reconciliation: failed to list active sessions", zap.Error(err))
+		return
+	}
+
+	for _, session := range activeSessions {
+		s.Server.Debug("reconciliation: processing session", zap.String("code", session.SessionCode))
+
+		// 1. Fetch from DB
+		entries, err := s.quizStore.GetParticipantsWithScores(ctx, session.SessionCode)
+		if err != nil {
+			s.Server.Error("reconciliation: failed to fetch participants", zap.String("code", session.SessionCode), zap.Error(err))
+			continue
+		}
+
+		// 2. Reload into Redis
+		if err := s.lbStore.ReloadLeaderboard(ctx, session.SessionCode, entries); err != nil {
+			s.Server.Error("reconciliation: failed to reload leaderboard", zap.String("code", session.SessionCode), zap.Error(err))
+			continue
+		}
+
+		s.Server.Info("reconciliation: success", zap.String("code", session.SessionCode), zap.Int("count", len(entries)))
+	}
 }

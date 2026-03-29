@@ -42,7 +42,7 @@ func main() {
 	// Wrap stores with Redis cache
 	userStore := redisrepo.NewUserCache(rdb, dbUserStore)
 	quizStoreCached := redisrepo.NewQuizCache(rdb, dbQuizStore)
-	lbStore := redisrepo.NewLeaderboardStore(rdb)
+	lbStore := redisrepo.NewLeaderboardStore(rdb, dbQuizStore)
 
 	tokenMaker, err := token.NewJWTMaker(cfg.Token.SecretKey)
 	if err != nil {

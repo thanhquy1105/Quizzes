@@ -37,6 +37,7 @@ type QuizStore interface {
 	GetUserAnswer(ctx context.Context, sessionID, userID, questionID uint64) (*model.UserAnswer, error)
 	ValidateAnswer(ctx context.Context, quizID, questionID, answerID uint64) (int, bool, error)
 	GetParticipantsWithScores(ctx context.Context, sessionCode string) ([]model.RankedEntry, error)
+	ListActiveSessions(ctx context.Context) ([]model.QuizSession, error)
 }
 
 type TokenStore interface {

@@ -160,7 +160,18 @@ func (s *QuizStore) GetParticipantsWithScores(ctx context.Context, sessionCode s
 		Joins("JOIN quiz_sessions ON quiz_sessions.id = session_participants.session_id").
 		Joins("JOIN users ON users.id = session_participants.user_id").
 		Where("quiz_sessions.session_code = ?", sessionCode).
+		Order("session_participants.score DESC").
 		Scan(&results).Error
 
 	return results, err
+}
+
+func (s *QuizStore) ListActiveSessions(ctx context.Context) ([]model.QuizSession, error) {
+	var sessions []model.QuizSession
+	now := time.Now()
+	err := s.db.WithContext(ctx).
+		Where("(started_at IS NULL OR started_at <= ?) AND (ended_at IS NULL OR ended_at >= ?) AND deleted_at IS NULL", now, now).
+		Find(&sessions).Error
+
+	return sessions, err
 }

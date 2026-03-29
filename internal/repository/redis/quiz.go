@@ -222,3 +222,7 @@ func (c *QuizCache) GetUserAnswer(ctx context.Context, sessionID, userID, questi
 func (c *QuizCache) GetParticipantsWithScores(ctx context.Context, sessionCode string) ([]model.RankedEntry, error) {
 	return c.store.GetParticipantsWithScores(ctx, sessionCode)
 }
+
+func (c *QuizCache) ListActiveSessions(ctx context.Context) ([]model.QuizSession, error) {
+	return c.store.ListActiveSessions(ctx)
+}
