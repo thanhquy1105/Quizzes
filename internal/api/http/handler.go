@@ -14,22 +14,24 @@ import (
 )
 
 type Handler struct {
-	userStore  repository.UserStore
-	quizStore  repository.QuizStore
-	tokenStore repository.TokenStore
-	tokenMaker token.IMaker
-	accessDur  time.Duration
-	refreshDur time.Duration
+	userStore        repository.UserStore
+	quizStore        repository.QuizStore
+	leaderboardStore repository.LeaderboardStore
+	tokenStore       repository.TokenStore
+	tokenMaker       token.IMaker
+	accessDur        time.Duration
+	refreshDur       time.Duration
 }
 
-func NewHandler(userStore repository.UserStore, quizStore repository.QuizStore, tokenStore repository.TokenStore, tokenMaker token.IMaker, accessDur time.Duration, refreshDur time.Duration) *Handler {
+func NewHandler(userStore repository.UserStore, quizStore repository.QuizStore, lbStore repository.LeaderboardStore, tokenStore repository.TokenStore, tokenMaker token.IMaker, accessDur time.Duration, refreshDur time.Duration) *Handler {
 	return &Handler{
-		userStore:  userStore,
-		quizStore:  quizStore,
-		tokenStore: tokenStore,
-		tokenMaker: tokenMaker,
-		accessDur:  accessDur,
-		refreshDur: refreshDur,
+		userStore:        userStore,
+		quizStore:        quizStore,
+		leaderboardStore: lbStore,
+		tokenStore:       tokenStore,
+		tokenMaker:       tokenMaker,
+		accessDur:        accessDur,
+		refreshDur:       refreshDur,
 	}
 }
 
@@ -241,4 +243,78 @@ func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 		c.Set("user_id", payload.Username)
 		c.Next()
 	}
+}
+
+func (h *Handler) ReloadLeaderboard(c *gin.Context) {
+	sessionCode := c.Param("code")
+	if sessionCode == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "session code is required"})
+		return
+	}
+
+	// 1. Fetch from DB
+	entries, err := h.quizStore.GetParticipantsWithScores(c.Request.Context(), sessionCode)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch participants from database: " + err.Error()})
+		return
+	}
+
+	// 2. Reload into Redis
+	if err := h.leaderboardStore.ReloadLeaderboard(c.Request.Context(), sessionCode, entries); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to reload leaderboard into redis: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":          "leaderboard reloaded successfully",
+		"participants_count": len(entries),
+	})
+}
+
+func (h *Handler) ReloadAllLeaderboards(c *gin.Context) {
+	// 1. Fetch all sessions
+	sessions, err := h.quizStore.ListSessions(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list sessions: " + err.Error()})
+		return
+	}
+
+	type reloadResult struct {
+		SessionCode string `json:"session_code"`
+		Count       int    `json:"count"`
+		Error       string `json:"error,omitempty"`
+	}
+
+	var results []reloadResult
+
+	for _, session := range sessions {
+		// 2. Fetch from DB
+		entries, err := h.quizStore.GetParticipantsWithScores(c.Request.Context(), session.SessionCode)
+		if err != nil {
+			results = append(results, reloadResult{
+				SessionCode: session.SessionCode,
+				Error:       "failed to fetch participants: " + err.Error(),
+			})
+			continue
+		}
+
+		// 3. Reload into Redis
+		if err := h.leaderboardStore.ReloadLeaderboard(c.Request.Context(), session.SessionCode, entries); err != nil {
+			results = append(results, reloadResult{
+				SessionCode: session.SessionCode,
+				Error:       "failed to reload: " + err.Error(),
+			})
+			continue
+		}
+
+		results = append(results, reloadResult{
+			SessionCode: session.SessionCode,
+			Count:       len(entries),
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "reload all leaderboards finished",
+		"results": results,
+	})
 }

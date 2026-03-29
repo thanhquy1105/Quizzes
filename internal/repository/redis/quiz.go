@@ -218,3 +218,7 @@ func (c *QuizCache) GetUserAnswers(ctx context.Context, sessionID, userID uint64
 func (c *QuizCache) GetUserAnswer(ctx context.Context, sessionID, userID, questionID uint64) (*model.UserAnswer, error) {
 	return c.store.GetUserAnswer(ctx, sessionID, userID, questionID)
 }
+
+func (c *QuizCache) GetParticipantsWithScores(ctx context.Context, sessionCode string) ([]model.RankedEntry, error) {
+	return c.store.GetParticipantsWithScores(ctx, sessionCode)
+}

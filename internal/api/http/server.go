@@ -27,6 +27,8 @@ func NewServer(addr string, handler *Handler) *Server {
 
 	auth := r.Group("/").Use(handler.AuthMiddleware())
 	auth.GET("/sessions", handler.ListSessions)
+	auth.POST("/sessions/reload-leaderboard", handler.ReloadAllLeaderboards)
+	auth.POST("/sessions/:code/reload-leaderboard", handler.ReloadLeaderboard)
 	// auth.GET("/quizzes", handler.ListQuizzes)
 	// auth.GET("/quizzes/:id", handler.GetDetailedQuiz)
 

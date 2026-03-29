@@ -13,6 +13,7 @@ type LeaderboardStore interface {
 	IncrBy(ctx context.Context, sessionCode, username string, delta float64) error
 	GetRanked(ctx context.Context, sessionCode string) ([]model.RankedEntry, error)
 	Delete(ctx context.Context, sessionCode string) error
+	ReloadLeaderboard(ctx context.Context, sessionCode string, entries []model.RankedEntry) error
 }
 
 type UserStore interface {
@@ -35,6 +36,7 @@ type QuizStore interface {
 	GetUserAnswers(ctx context.Context, sessionID, userID uint64) ([]model.UserAnswer, error)
 	GetUserAnswer(ctx context.Context, sessionID, userID, questionID uint64) (*model.UserAnswer, error)
 	ValidateAnswer(ctx context.Context, quizID, questionID, answerID uint64) (int, bool, error)
+	GetParticipantsWithScores(ctx context.Context, sessionCode string) ([]model.RankedEntry, error)
 }
 
 type TokenStore interface {

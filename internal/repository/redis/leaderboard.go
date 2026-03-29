@@ -52,3 +52,26 @@ func (r *LeaderboardStore) GetRanked(ctx context.Context, sessionCode string) ([
 func (r *LeaderboardStore) Delete(ctx context.Context, sessionCode string) error {
 	return r.rdb.Del(ctx, lbKey(sessionCode)).Err()
 }
+
+func (s *LeaderboardStore) ReloadLeaderboard(ctx context.Context, sessionCode string, entries []model.RankedEntry) error {
+	key := lbKey(sessionCode)
+	// 1. Clear existing
+	if err := s.rdb.Del(ctx, key).Err(); err != nil {
+		return err
+	}
+
+	// 2. Bulk add
+	if len(entries) == 0 {
+		return nil
+	}
+
+	zs := make([]redis.Z, 0, len(entries))
+	for _, e := range entries {
+		zs = append(zs, redis.Z{
+			Score:  e.Score,
+			Member: e.Username,
+		})
+	}
+
+	return s.rdb.ZAdd(ctx, key, zs...).Err()
+}

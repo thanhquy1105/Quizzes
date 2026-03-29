@@ -151,3 +151,16 @@ func (s *QuizStore) ValidateAnswer(ctx context.Context, quizID, questionID, answ
 
 	return question.Point, true, nil
 }
+
+func (s *QuizStore) GetParticipantsWithScores(ctx context.Context, sessionCode string) ([]model.RankedEntry, error) {
+	var results []model.RankedEntry
+	err := s.db.WithContext(ctx).
+		Table("session_participants").
+		Select("users.username, session_participants.score").
+		Joins("JOIN quiz_sessions ON quiz_sessions.id = session_participants.session_id").
+		Joins("JOIN users ON users.id = session_participants.user_id").
+		Where("quiz_sessions.session_code = ?", sessionCode).
+		Scan(&results).Error
+
+	return results, err
+}

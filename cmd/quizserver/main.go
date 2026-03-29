@@ -42,6 +42,7 @@ func main() {
 	// Wrap stores with Redis cache
 	userStore := redisrepo.NewUserCache(rdb, dbUserStore)
 	quizStoreCached := redisrepo.NewQuizCache(rdb, dbQuizStore)
+	lbStore := redisrepo.NewLeaderboardStore(rdb)
 
 	tokenMaker, err := token.NewJWTMaker(cfg.Token.SecretKey)
 	if err != nil {
@@ -50,7 +51,7 @@ func main() {
 	}
 
 	// Start Gin HTTP Server
-	httpHandler := http.NewHandler(userStore, quizStoreCached, tokenStore, tokenMaker, cfg.Token.AccessTokenDuration, cfg.Token.RefreshTokenDuration)
+	httpHandler := http.NewHandler(userStore, quizStoreCached, lbStore, tokenStore, tokenMaker, cfg.Token.AccessTokenDuration, cfg.Token.RefreshTokenDuration)
 	httpServer := http.NewServer(cfg.Server.HTTPAddr, httpHandler)
 	go func() {
 		fmt.Printf("HTTP server starting on %s\n", cfg.Server.HTTPAddr)
