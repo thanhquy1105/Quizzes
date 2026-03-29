@@ -1,7 +1,6 @@
 server:
   tcp_addr: "tcp://0.0.0.0:8080"
-  ws_addr: "ws://0.0.0.0:8081"
-  gorilla_ws_addr: "0.0.0.0:8083"
+  ws_addr: "0.0.0.0:8083"
   http_addr: "0.0.0.0:8082"
   request_pool_size: 20000
   message_pool_size: 40000

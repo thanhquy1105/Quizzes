@@ -305,7 +305,13 @@ func (s *Server) OnBoot(eng gnet.Engine) (action gnet.Action) {
 	return
 }
 
+func (s *Server) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
+	s.metrics.ActiveConnInc()
+	return
+}
+
 func (s *Server) OnClose(conn gnet.Conn, err error) (action gnet.Action) {
+	s.metrics.ActiveConnDec()
 
 	ctx := conn.Context()
 	if ctx == nil {

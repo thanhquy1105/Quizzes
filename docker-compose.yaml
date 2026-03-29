@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: btaskee_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: my-secret-pw
+      MYSQL_DATABASE: btaskee_quiz
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./seed:/docker-entrypoint-initdb.d
+
+  redis:
+    image: redis:7-alpine
+    container_name: btaskee_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: btaskee_backend
+    restart: always
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      MYSQL_ADDR: mysql:3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: my-secret-pw
+      MYSQL_DB_NAME: btaskee_quiz
+      REDIS_ADDR: redis:6379
+    ports:
+      - "8080:8080" # TCP
+      - "8082:8082" # HTTP
+      - "8083:8083" # WS
+
+  frontend:
+    build:
+      context: ./demo-web
+      dockerfile: Dockerfile
+    container_name: btaskee_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  mysql_data:
+  redis_data:

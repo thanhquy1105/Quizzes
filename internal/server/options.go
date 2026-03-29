@@ -4,16 +4,11 @@ import (
 	"time"
 
 	"btaskee-quiz/internal/server/proto"
-
-	"github.com/WuKongIM/crypto/tls"
 )
 
 type Options struct {
-	Addr            string
+	TCPAddr         string
 	WSAddr          string
-	WSSAddr         string
-	GorillaWSAddr   string
-	WSTLSConfig     *tls.Config
 	RequestPoolSize int
 	MessagePoolSize int
 	MessagePoolOn   bool
@@ -33,7 +28,7 @@ type Options struct {
 func NewOptions() *Options {
 
 	return &Options{
-		Addr:            "tcp://0.0.0.0:12000",
+		TCPAddr:         "tcp://0.0.0.0:12000",
 		RequestPoolSize: 20000,
 		MessagePoolSize: 40000,
 		MessagePoolOn:   true,
@@ -48,27 +43,15 @@ func NewOptions() *Options {
 
 type Option func(*Options)
 
-func WithAddr(addr string) Option {
+func WithTCPAddr(addr string) Option {
 	return func(o *Options) {
-		o.Addr = addr
+		o.TCPAddr = addr
 	}
 }
 
 func WithWSAddr(addr string) Option {
 	return func(o *Options) {
 		o.WSAddr = addr
-	}
-}
-
-func WithWSSAddr(addr string) Option {
-	return func(o *Options) {
-		o.WSSAddr = addr
-	}
-}
-
-func WithGorillaWSAddr(addr string) Option {
-	return func(o *Options) {
-		o.GorillaWSAddr = addr
 	}
 }
 

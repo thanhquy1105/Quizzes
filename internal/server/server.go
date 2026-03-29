@@ -9,13 +9,11 @@ import (
 
 	"btaskee-quiz/pkg/log"
 
-	"github.com/RussellLuo/timingwheel"
-
 	"btaskee-quiz/internal/server/proto"
 	"btaskee-quiz/internal/transport/ws"
-	"btaskee-quiz/pkg/net"
 
-	"github.com/lni/goutils/syncutil"
+	"github.com/RussellLuo/timingwheel"
+
 	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet/v2"
 	"go.etcd.io/etcd/pkg/v3/wait"
@@ -42,17 +40,15 @@ type Server struct {
 	timingWheel *timingwheel.TimingWheel
 
 	requestObjPool *sync.Pool
-	stopper        *syncutil.Stopper
 	batchRead      int
 
-	wsEngine    *net.Engine
 	ready       chan struct{}
 	wsTransport *ws.Server
 }
 
 func New(addr string, ops ...Option) *Server {
 	opts := NewOptions()
-	opts.Addr = addr
+	opts.TCPAddr = addr
 	if len(ops) > 0 {
 		for _, op := range ops {
 			op(opts)
@@ -65,7 +61,6 @@ func New(addr string, ops ...Option) *Server {
 		routeMap:    make(map[string]Handler),
 		Log:         log.NewBLog("Server"),
 		w:           wait.New(),
-		stopper:     syncutil.NewStopper(),
 		connManager: NewConnManager(),
 		metrics:     newMetrics(),
 		batchRead:   100,
@@ -107,15 +102,6 @@ func New(addr string, ops ...Option) *Server {
 		})
 	}
 
-	if s.opts.WSAddr != "" || s.opts.WSSAddr != "" {
-		s.wsEngine = net.NewEngine(
-			net.WithAddr("tcp://0.0.0.0:0"),
-			net.WithWSAddr(s.opts.WSAddr),
-			net.WithWSSAddr(s.opts.WSSAddr),
-			net.WithWSTLSConfig(s.opts.WSTLSConfig),
-		)
-	}
-
 	return s
 }
 
@@ -123,12 +109,12 @@ func (s *Server) Start() error {
 	s.timingWheel.Start()
 
 	s.Schedule(time.Minute*1, func() {
-		s.metrics.PrintMetrics(fmt.Sprintf("Server:%s", s.opts.Addr))
+		s.metrics.PrintMetrics(fmt.Sprintf("Server:%s", s.opts.TCPAddr))
 	})
 
 	errChan := make(chan error, 1)
 	go func() {
-		err := gnet.Run(s, s.opts.Addr, gnet.WithTicker(true), gnet.WithReuseAddr(true))
+		err := gnet.Run(s, s.opts.TCPAddr, gnet.WithTicker(true), gnet.WithReuseAddr(true))
 		if err != nil {
 			errChan <- err
 		}
@@ -142,9 +128,9 @@ func (s *Server) Start() error {
 		return fmt.Errorf("gnet start timeout")
 	}
 
-	if s.opts.GorillaWSAddr != "" {
+	if s.opts.WSAddr != "" {
 		s.wsTransport = ws.NewServer(
-			s.opts.GorillaWSAddr,
+			s.opts.WSAddr,
 			s.opts.MaxIdle,
 			s.proto,
 			&wsTransportHandler{server: s},
@@ -158,31 +144,11 @@ func (s *Server) Start() error {
 		}()
 	}
 
-	if s.wsEngine != nil {
-		s.wsEngine.OnConnect(func(conn net.Conn) error {
-			return s.onWSConnect(conn)
-		})
-		s.wsEngine.OnData(func(conn net.Conn) error {
-			return s.onWSData(conn)
-		})
-		s.wsEngine.OnClose(func(conn net.Conn) {
-			s.onWSClose(conn)
-		})
-		err := s.wsEngine.Start()
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
 func (s *Server) Stop() {
-	s.stopper.Stop()
 	s.timingWheel.Stop()
-	if s.wsEngine != nil {
-		_ = s.wsEngine.Stop()
-	}
 	if s.wsTransport != nil {
 		_ = s.wsTransport.Stop()
 	}
@@ -222,35 +188,20 @@ func (s *Server) Metrics() *Metrics {
 	return s.metrics
 }
 
-func (s *Server) onWSConnect(conn net.Conn) error {
-	conn.SetMaxIdle(time.Second * 120)
-	s.metrics.ActiveConnInc()
-	return nil
-}
-
-func (s *Server) onWSData(conn net.Conn) error {
-	s.onTraffic(NewNetConn(conn))
-	return nil
-}
-
-func (s *Server) onWSClose(conn net.Conn) {
-	s.onClose(NewNetConn(conn))
-	s.metrics.ActiveConnDec()
-}
-
-func (s *Server) onTraffic(c Conn) {
+func (s *Server) OnTraffic(c gnet.Conn) gnet.Action {
 	for i := 0; i < s.batchRead; i++ {
-		data, msgType, _, err := s.proto.Decode(NewNetShim(c))
+		data, msgType, _, err := s.proto.Decode(c)
 		if err == io.ErrShortBuffer {
 			break
 		}
 		if err != nil {
-			s.Error("ws decode error", zap.Error(err))
+			s.Error("tcp decode error", zap.Error(err))
 			_ = c.Close()
-			return
+			return gnet.Close
 		}
-		s.handleMsg(c, msgType, data)
+		s.handleMsg(NewGnetConn(c), msgType, data)
 	}
+	return gnet.None
 }
 
 func (s *Server) onClose(conn Conn) {
@@ -290,65 +241,6 @@ func (g *GnetConn) AsyncWrite(data []byte, callback gnet.AsyncCallback) error {
 func (g *GnetConn) Write(data []byte) (int, error) {
 	err := g.Conn.AsyncWrite(data, nil)
 	return len(data), err
-}
-
-type NetConn struct {
-	net.Conn
-}
-
-func NewNetConn(c net.Conn) *NetConn {
-	return &NetConn{Conn: c}
-}
-
-func (w *NetConn) AsyncWrite(data []byte, _ gnet.AsyncCallback) error {
-	if wsConn, ok := w.Conn.(net.IWSConn); ok {
-		return wsConn.WriteServerBinary(data)
-	}
-	_, err := w.Conn.Write(data)
-	return err
-}
-
-func (w *NetConn) Write(data []byte) (int, error) {
-	if wsConn, ok := w.Conn.(net.IWSConn); ok {
-		err := wsConn.WriteServerBinary(data)
-		return len(data), err
-	}
-	return w.Conn.Write(data)
-}
-
-func (w *NetConn) Peek(n int) ([]byte, error) {
-	return w.Conn.Peek(n)
-}
-
-func (w *NetConn) Discard(n int) (int, error) {
-	return w.Conn.Discard(n)
-}
-
-func (w *NetConn) InboundBuffered() int {
-	if w.Conn.InboundBuffer() == nil {
-		return 0
-	}
-	return w.Conn.InboundBuffer().BoundBufferSize()
-}
-
-type NetShim struct {
-	conn *NetConn
-}
-
-func NewNetShim(c Conn) *NetShim {
-	return &NetShim{conn: c.(*NetConn)}
-}
-
-func (w *NetShim) InboundBuffered() int {
-	return w.conn.InboundBuffered()
-}
-
-func (w *NetShim) Peek(n int) ([]byte, error) {
-	return w.conn.Peek(n)
-}
-
-func (w *NetShim) Discard(n int) (int, error) {
-	return w.conn.Discard(n)
 }
 
 type everyScheduler struct {

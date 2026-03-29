@@ -33,7 +33,6 @@ func NewQuizServer(cfg *config.Config, rdb *goredis.Client, tokenStore repositor
 	s := &QuizServer{
 		Server: server.New(cfg.Server.TCPAddr,
 			server.WithWSAddr(cfg.Server.WSAddr),
-			server.WithGorillaWSAddr(cfg.Server.GorillaWSAddr),
 			server.WithRequestPoolSize(cfg.Server.RequestPoolSize),
 			server.WithMessagePoolSize(cfg.Server.MessagePoolSize),
 			server.WithMaxIdle(cfg.Server.MaxIdle),

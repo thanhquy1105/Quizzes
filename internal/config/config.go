@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -17,7 +18,6 @@ type Config struct {
 type ServerConfig struct {
 	TCPAddr         string        `yaml:"tcp_addr"`
 	WSAddr          string        `yaml:"ws_addr"`
-	GorillaWSAddr   string        `yaml:"gorilla_ws_addr"`
 	HTTPAddr        string        `yaml:"http_addr"`
 	RequestPoolSize int           `yaml:"request_pool_size"`
 	MessagePoolSize int           `yaml:"message_pool_size"`
@@ -56,5 +56,32 @@ func Load(path string) (*Config, error) {
 	if err := yaml.NewDecoder(f).Decode(cfg); err != nil {
 		return nil, err
 	}
+
+	// Environment variable overrides
+	if addr := os.Getenv("MYSQL_ADDR"); addr != "" {
+		cfg.MySQL.Addr = addr
+	}
+	if user := os.Getenv("MYSQL_USER"); user != "" {
+		cfg.MySQL.User = user
+	}
+	if pass := os.Getenv("MYSQL_PASSWORD"); pass != "" {
+		cfg.MySQL.Password = pass
+	}
+	if dbName := os.Getenv("MYSQL_DB_NAME"); dbName != "" {
+		cfg.MySQL.DBName = dbName
+	}
+	if redisAddr := os.Getenv("REDIS_ADDR"); redisAddr != "" {
+		cfg.Redis.Addr = redisAddr
+	}
+	if redisPass := os.Getenv("REDIS_PASSWORD"); redisPass != "" {
+		cfg.Redis.Password = redisPass
+	}
+	if redisDB := os.Getenv("REDIS_DB"); redisDB != "" {
+		// Convert string to int for Redis DB
+		if db, err := strconv.Atoi(redisDB); err == nil {
+			cfg.Redis.DB = db
+		}
+	}
+
 	return cfg, nil
 }
