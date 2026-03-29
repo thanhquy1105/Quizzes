@@ -183,3 +183,15 @@ func (s *QuizStore) Transaction(ctx context.Context, fn func(repository.QuizStor
 		return fn(txStore)
 	})
 }
+
+func (s *QuizStore) CheckAndSetAnswered(ctx context.Context, sessionID, userID, questionID uint64) (bool, error) {
+	return false, errors.New("not implemented in mysql store")
+}
+
+func (s *QuizStore) RemoveAnsweredCache(ctx context.Context, sessionID, userID, questionID uint64) error {
+	return nil // No-op for MySQL store
+}
+
+func (s *QuizStore) SyncAnsweredCache(ctx context.Context, sessionID, userID uint64, questionIDs []uint64) error {
+	return nil // No-op for MySQL store
+}

@@ -236,3 +236,40 @@ func (c *QuizCache) Transaction(ctx context.Context, fn func(repository.QuizStor
 		return fn(txCache)
 	})
 }
+
+func (c *QuizCache) answeredKey(sessionID, userID uint64) string {
+	return fmt.Sprintf("session:answered:%d:%d", sessionID, userID)
+}
+
+func (c *QuizCache) CheckAndSetAnswered(ctx context.Context, sessionID, userID, questionID uint64) (bool, error) {
+	key := c.answeredKey(sessionID, userID)
+	added, err := c.rdb.SAdd(ctx, key, questionID).Result()
+	if err != nil {
+		return false, err
+	}
+	// Expire after 24h to cleanup
+	_ = c.rdb.Expire(ctx, key, 24*time.Hour).Err()
+	return added > 0, nil
+}
+
+func (c *QuizCache) RemoveAnsweredCache(ctx context.Context, sessionID, userID, questionID uint64) error {
+	key := c.answeredKey(sessionID, userID)
+	return c.rdb.SRem(ctx, key, questionID).Err()
+}
+
+func (c *QuizCache) SyncAnsweredCache(ctx context.Context, sessionID, userID uint64, questionIDs []uint64) error {
+	if len(questionIDs) == 0 {
+		return nil
+	}
+	key := c.answeredKey(sessionID, userID)
+	// SAdd accepts multiple values
+	interfaces := make([]interface{}, len(questionIDs))
+	for i, v := range questionIDs {
+		interfaces[i] = v
+	}
+	err := c.rdb.SAdd(ctx, key, interfaces...).Err()
+	if err != nil {
+		return err
+	}
+	return c.rdb.Expire(ctx, key, 24*time.Hour).Err()
+}

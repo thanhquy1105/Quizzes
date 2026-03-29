@@ -86,9 +86,17 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 		}
 
 		answeredMap := make(map[uint64]bool)
+		questionIDs := make([]uint64, 0, len(userAnswers))
 		for _, ans := range userAnswers {
 			answeredMap[ans.QuestionID] = true
+			questionIDs = append(questionIDs, ans.QuestionID)
 			currentScore += float64(ans.Score)
+		}
+
+		// Warm up Redis checklist for this user
+		if err := s.quizStore.SyncAnsweredCache(context.Background(), dbSession.ID, user.ID, questionIDs); err != nil {
+			s.Server.Error("handleJoin: failed to sync answered cache", zap.Error(err))
+			// Non-critical: continue even if cache sync fails
 		}
 
 		for i := range quiz.Questions {
@@ -167,35 +175,38 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 		return
 	}
 
-	// Wrap database operations in a transaction
-	var points int
+	// Optimize: Checklist bằng Redis (O(1)) - Tránh MySQL SELECT hoàn toàn cho việc kiểm tra trùng lặp
+	isNew, err := s.quizStore.CheckAndSetAnswered(context.Background(), meta.DBID, user.ID, req.QuestionID)
+	if err != nil {
+		s.Server.Error("handleAnswer: redis checklist error", zap.Error(err))
+		ctx.WriteErr(err)
+		return
+	}
+	if !isNew {
+		s.Server.Warn("handleAnswer: user already answered this question", zap.Uint64("userID", user.ID), zap.Uint64("questionID", req.QuestionID))
+		ctx.WriteErrorAndStatus(errors.New("user already answered this question"), proto.StatusAlreadyAnswered)
+		return
+	}
+
+	// Verify answer server-side (Đưa ra ngoài transaction để tối ưu lock time)
+	points, isCorrect, err := s.quizStore.ValidateAnswer(context.Background(), meta.QuizID, req.QuestionID, req.AnswerID)
+	if err != nil {
+		s.Server.Error("handleAnswer: validation error", zap.Error(err))
+		ctx.WriteErrorAndStatus(errors.New("validation failed"), proto.StatusError)
+		return
+	}
+
+	answer := &model.UserAnswer{
+		SessionID:  meta.DBID,
+		UserID:     user.ID,
+		QuestionID: req.QuestionID,
+		AnswerID:   req.AnswerID,
+		IsCorrect:  isCorrect,
+		Score:      points,
+	}
+
+	// Wrap ONLY database write operations in a transaction
 	err = s.quizStore.Transaction(context.Background(), func(txStore repository.QuizStore) error {
-		// check if user already answered this question
-		userAnswer, err := txStore.GetUserAnswer(context.Background(), meta.DBID, user.ID, req.QuestionID)
-		if err != nil {
-			return err
-		}
-
-		if userAnswer != nil {
-			return errors.New("already_answered")
-		}
-
-		// Verify answer server-side
-		var isCorrect bool
-		points, isCorrect, err = txStore.ValidateAnswer(context.Background(), meta.QuizID, req.QuestionID, req.AnswerID)
-		if err != nil {
-			return err
-		}
-
-		answer := &model.UserAnswer{
-			SessionID:  meta.DBID,
-			UserID:     user.ID,
-			QuestionID: req.QuestionID,
-			AnswerID:   req.AnswerID,
-			IsCorrect:  isCorrect,
-			Score:      points,
-		}
-
 		if err := txStore.SaveUserAnswer(context.Background(), answer); err != nil {
 			return err
 		}
@@ -211,11 +222,9 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 	})
 
 	if err != nil {
-		if err.Error() == "already_answered" {
-			s.Server.Warn("handleAnswer: user already answered this question", zap.Uint64("userID", user.ID), zap.Uint64("questionID", req.QuestionID))
-			ctx.WriteErrorAndStatus(errors.New("user already answered this question"), proto.StatusAlreadyAnswered)
-			return
-		}
+		// Rollback Redis checklist if DB transaction failed so user can retry
+		_ = s.quizStore.RemoveAnsweredCache(context.Background(), meta.DBID, user.ID, req.QuestionID)
+
 		s.Server.Error("handleAnswer: transaction failed", zap.Error(err))
 		ctx.WriteErrorAndStatus(errors.New("failed to save answer"), proto.StatusError)
 		return

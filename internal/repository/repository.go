@@ -39,6 +39,9 @@ type QuizStore interface {
 	GetParticipantsWithScores(ctx context.Context, sessionCode string) ([]model.RankedEntry, error)
 	ListActiveSessions(ctx context.Context) ([]model.QuizSession, error)
 	Transaction(ctx context.Context, fn func(QuizStore) error) error
+	CheckAndSetAnswered(ctx context.Context, sessionID, userID, questionID uint64) (bool, error)
+	RemoveAnsweredCache(ctx context.Context, sessionID, userID, questionID uint64) error
+	SyncAnsweredCache(ctx context.Context, sessionID, userID uint64, questionIDs []uint64) error
 }
 
 type TokenStore interface {
