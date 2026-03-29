@@ -262,6 +262,12 @@ export default function App() {
           }
         }
       });
+
+      client.onClose(() => {
+        setStatus('disconnected');
+        addToast("Connection lost. Please reconnect.", 'error');
+      });
+
       addToast("Successfully logged in!", "success");
     } catch (err) {
       console.error(err);

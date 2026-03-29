@@ -25,6 +25,7 @@ export class WsClient {
     private ws: WebSocket | null = null;
     private handlers: Map<string, (data: any) => void> = new Map();
     private onMessageCallback: MessageHandler | null = null;
+    private onCloseCallback: (() => void) | null = null;
     private heartbeatInterval: any = null;
 
     constructor(private url: string) { }
@@ -59,6 +60,9 @@ export class WsClient {
             this.ws.onclose = () => {
                 console.log("Disconnected from WsServer");
                 this.stopHeartbeat();
+                if (this.onCloseCallback) {
+                    this.onCloseCallback();
+                }
             };
         });
     }
@@ -296,6 +300,10 @@ export class WsClient {
 
     onMessage(callback: MessageHandler) {
         this.onMessageCallback = callback;
+    }
+
+    onClose(callback: () => void) {
+        this.onCloseCallback = callback;
     }
 
     close() {
