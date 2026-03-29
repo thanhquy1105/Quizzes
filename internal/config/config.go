@@ -24,6 +24,8 @@ type ServerConfig struct {
 	RequestTimeout  time.Duration `yaml:"request_timeout"`
 	MaxIdle         time.Duration `yaml:"max_idle"`
 	LogDetail       bool          `yaml:"log_detail"`
+	CertFile        string        `yaml:"cert_file"`
+	KeyFile         string        `yaml:"key_file"`
 }
 
 type RedisConfig struct {
@@ -69,6 +71,12 @@ func Load(path string) (*Config, error) {
 	}
 	if dbName := os.Getenv("MYSQL_DB_NAME"); dbName != "" {
 		cfg.MySQL.DBName = dbName
+	}
+	if certFile := os.Getenv("CERT_FILE"); certFile != "" {
+		cfg.Server.CertFile = certFile
+	}
+	if keyFile := os.Getenv("KEY_FILE"); keyFile != "" {
+		cfg.Server.KeyFile = keyFile
 	}
 	if redisAddr := os.Getenv("REDIS_ADDR"); redisAddr != "" {
 		cfg.Redis.Addr = redisAddr

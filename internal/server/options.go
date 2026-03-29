@@ -23,6 +23,8 @@ type Options struct {
 	OnRequest       func(conn Conn, req *proto.Request)
 	OnResponse      func(conn Conn, resp *proto.Response)
 	LogDetailOn     bool
+	CertFile        string
+	KeyFile         string
 }
 
 func NewOptions() *Options {
@@ -88,5 +90,12 @@ func WithRequestTimeout(d time.Duration) Option {
 func WithLogDetail(on bool) Option {
 	return func(o *Options) {
 		o.LogDetailOn = on
+	}
+}
+
+func WithTLS(certFile, keyFile string) Option {
+	return func(o *Options) {
+		o.CertFile = certFile
+		o.KeyFile = keyFile
 	}
 }

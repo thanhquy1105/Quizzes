@@ -7,6 +7,8 @@ server:
   request_timeout: "10s"
   max_idle: "120s"
   log_detail: true
+  cert_file: "" # Path to your SSL certificate (e.g., ./certs/server.crt)
+  key_file: ""  # Path to your SSL key (e.g., ./certs/server.key)
 
 redis:
   addr: "localhost:6379"

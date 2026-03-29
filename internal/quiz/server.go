@@ -38,6 +38,7 @@ func NewQuizServer(cfg *config.Config, rdb *goredis.Client, tokenStore repositor
 			server.WithMaxIdle(cfg.Server.MaxIdle),
 			server.WithRequestTimeout(cfg.Server.RequestTimeout),
 			server.WithLogDetail(cfg.Server.LogDetail),
+			server.WithTLS(cfg.Server.CertFile, cfg.Server.KeyFile),
 		),
 		Manager:    NewManager(lb, userStore),
 		quizStore:  redis.NewQuizCache(rdb, quizStore),

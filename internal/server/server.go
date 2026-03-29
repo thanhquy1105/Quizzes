@@ -135,6 +135,8 @@ func (s *Server) Start() error {
 			s.proto,
 			&wsTransportHandler{server: s},
 			log.NewBLog("GorillaWS"),
+			s.opts.CertFile,
+			s.opts.KeyFile,
 		)
 		go func() {
 			err := s.wsTransport.Start()

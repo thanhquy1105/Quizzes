@@ -34,16 +34,20 @@ type Server struct {
 	decoder       proto.Protocol
 	handler       EventHandler
 	gorillaServer *http.Server
+	certFile      string
+	keyFile       string
 	log.Log
 }
 
-func NewServer(addr string, maxIdle time.Duration, decoder proto.Protocol, handler EventHandler, logger log.Log) *Server {
+func NewServer(addr string, maxIdle time.Duration, decoder proto.Protocol, handler EventHandler, logger log.Log, certFile, keyFile string) *Server {
 	return &Server{
-		addr:    addr,
-		maxIdle: maxIdle,
-		decoder: decoder,
-		handler: handler,
-		Log:     logger,
+		addr:     addr,
+		maxIdle:  maxIdle,
+		decoder:  decoder,
+		handler:  handler,
+		Log:      logger,
+		certFile: certFile,
+		keyFile:  keyFile,
 	}
 }
 
@@ -81,8 +85,15 @@ func (s *Server) Start() error {
 		Handler: mux,
 	}
 
-	s.Info("Gorilla WS server starting", zap.String("addr", s.addr))
-	err := s.gorillaServer.ListenAndServe()
+	var err error
+	if s.certFile != "" && s.keyFile != "" {
+		s.Info("Gorilla WS server starting (WSS)", zap.String("addr", s.addr), zap.String("cert", s.certFile))
+		err = s.gorillaServer.ListenAndServeTLS(s.certFile, s.keyFile)
+	} else {
+		s.Info("Gorilla WS server starting (WS)", zap.String("addr", s.addr))
+		err = s.gorillaServer.ListenAndServe()
+	}
+
 	if err != nil && err != http.ErrServerClosed {
 		s.Error("Gorilla WS server error", zap.Error(err))
 		return err
