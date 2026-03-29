@@ -26,21 +26,20 @@ func lbKey(sessionCode string) string {
 	return fmt.Sprintf("leaderboard:session:%s", sessionCode)
 }
 
-func (s *LeaderboardStore) Add(ctx context.Context, sessionCode, username string) error {
-	key := fmt.Sprintf("leaderboard:session:%s", sessionCode)
-	return s.rdb.ZAddNX(ctx, key, redis.Z{
-		Score:  0,
+func (s *LeaderboardStore) Add(ctx context.Context, sessionCode, username string, score float64) error {
+	_, _ = s.GetRanked(ctx, sessionCode)
+	return s.rdb.ZAddNX(ctx, lbKey(sessionCode), redis.Z{
+		Score:  score,
 		Member: username,
 	}).Err()
 }
 
 func (s *LeaderboardStore) IncrBy(ctx context.Context, sessionCode, username string, delta float64) error {
-	key := fmt.Sprintf("leaderboard:session:%s", sessionCode)
-	return s.rdb.ZIncrBy(ctx, key, delta, username).Err()
+	return s.rdb.ZIncrBy(ctx, lbKey(sessionCode), delta, username).Err()
 }
 
-func (r *LeaderboardStore) GetRanked(ctx context.Context, sessionCode string) ([]model.RankedEntry, error) {
-	zs, err := r.rdb.ZRevRangeWithScores(ctx, lbKey(sessionCode), 0, -1).Result()
+func (s *LeaderboardStore) GetRanked(ctx context.Context, sessionCode string) ([]model.RankedEntry, error) {
+	zs, err := s.rdb.ZRevRangeWithScores(ctx, lbKey(sessionCode), 0, -1).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -57,18 +56,18 @@ func (r *LeaderboardStore) GetRanked(ctx context.Context, sessionCode string) ([
 	}
 
 	// Lazy load from DB
-	if r.quizStore == nil {
+	if s.quizStore == nil {
 		return nil, nil
 	}
 
-	entries, err := r.quizStore.GetParticipantsWithScores(ctx, sessionCode)
+	entries, err := s.quizStore.GetParticipantsWithScores(ctx, sessionCode)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(entries) > 0 {
 		// Populate Redis in background or wait? Let's wait to ensure consistency for this call
-		if err := r.ReloadLeaderboard(ctx, sessionCode, entries); err != nil {
+		if err := s.ReloadLeaderboard(ctx, sessionCode, entries); err != nil {
 			return nil, err
 		}
 	}
@@ -76,8 +75,8 @@ func (r *LeaderboardStore) GetRanked(ctx context.Context, sessionCode string) ([
 	return entries, nil
 }
 
-func (r *LeaderboardStore) Delete(ctx context.Context, sessionCode string) error {
-	return r.rdb.Del(ctx, lbKey(sessionCode)).Err()
+func (s *LeaderboardStore) Delete(ctx context.Context, sessionCode string) error {
+	return s.rdb.Del(ctx, lbKey(sessionCode)).Err()
 }
 
 func (s *LeaderboardStore) ReloadLeaderboard(ctx context.Context, sessionCode string, entries []model.RankedEntry) error {

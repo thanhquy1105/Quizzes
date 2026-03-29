@@ -19,69 +19,95 @@ type Participant struct {
 	Conn     server.Conn `json:"-"`
 }
 
-type Session struct {
-	QuizID       uint64
-	SessionCode  string
-	DBID         uint64
+type SessionMeta struct {
+	QuizID      uint64
+	SessionCode string
+	DBID        uint64
+}
+
+type Manager struct {
 	mu           sync.RWMutex
-	Participants map[string]*Participant
+	participants map[string]map[string]*Participant // sessionCode -> username -> Participant
+	metas        map[string]*SessionMeta           // sessionCode -> SessionMeta
 	lb           repository.LeaderboardStore
 	us           repository.UserStore
 }
 
-func NewSession(quizID uint64, sessionCode string, dbID uint64, lb repository.LeaderboardStore, us repository.UserStore) *Session {
-	return &Session{
-		QuizID:       quizID,
-		SessionCode:  sessionCode,
-		DBID:         dbID,
-		Participants: make(map[string]*Participant),
+func NewManager(lb repository.LeaderboardStore, us repository.UserStore) *Manager {
+	return &Manager{
+		participants: make(map[string]map[string]*Participant),
+		metas:        make(map[string]*SessionMeta),
 		lb:           lb,
 		us:           us,
 	}
 }
 
-func (s *Session) Join(username, name string, userID uint64, conn server.Conn) {
-	s.mu.Lock()
-	s.Participants[username] = &Participant{
+func (m *Manager) Join(sessionCode string, quizID, dbID uint64, username, name string, userID uint64, score float64, conn server.Conn) {
+	m.mu.Lock()
+	if _, ok := m.participants[sessionCode]; !ok {
+		m.participants[sessionCode] = make(map[string]*Participant)
+	}
+	if _, ok := m.metas[sessionCode]; !ok {
+		m.metas[sessionCode] = &SessionMeta{
+			QuizID:      quizID,
+			SessionCode: sessionCode,
+			DBID:        dbID,
+		}
+	}
+	m.participants[sessionCode][username] = &Participant{
 		Username: username,
 		Name:     name,
 		UserID:   userID,
+		Score:    score,
 		Conn:     conn,
 	}
-	s.mu.Unlock()
+	m.mu.Unlock()
 
-	_ = s.lb.Add(context.Background(), s.SessionCode, username)
+	_ = m.lb.Add(context.Background(), sessionCode, username, score)
 }
 
-func (s *Session) SubmitAnswer(username string, points int) {
+func (m *Manager) SubmitAnswer(sessionCode string, username string, points int) {
 	if points > 0 {
-		_ = s.lb.IncrBy(context.Background(), s.SessionCode, username, float64(points))
+		_ = m.lb.IncrBy(context.Background(), sessionCode, username, float64(points))
 	}
 }
 
-// GetParticipant retrieves a joined participant by their Username from memory.
-func (s *Session) GetParticipant(username string) (*Participant, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	p, ok := s.Participants[username]
-	return p, ok
+func (m *Manager) GetParticipant(sessionCode, username string) (*Participant, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if ps, ok := m.participants[sessionCode]; ok {
+		p, ok := ps[username]
+		return p, ok
+	}
+	return nil, false
 }
 
-func (s *Session) GetLeaderboard() []*Participant {
-	entries, err := s.lb.GetRanked(context.Background(), s.SessionCode)
+func (m *Manager) GetSessionMeta(sessionCode string) (*SessionMeta, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	meta, ok := m.metas[sessionCode]
+	return meta, ok
+}
+
+func (m *Manager) GetLeaderboard(sessionCode string) []*Participant {
+	entries, err := m.lb.GetRanked(context.Background(), sessionCode)
 	if err != nil {
 		return nil
 	}
 
 	result := make([]*Participant, 0, len(entries))
 	for _, e := range entries {
-		s.mu.RLock()
-		p, ok := s.Participants[e.Username]
-		s.mu.RUnlock()
+		m.mu.RLock()
+		ps, ok := m.participants[sessionCode]
+		var p *Participant
+		if ok {
+			p, ok = ps[e.Username]
+		}
+		m.mu.RUnlock()
 
 		if !ok {
 			// Query DB if missing from memory
-			user, err := s.us.GetByUsername(context.Background(), e.Username)
+			user, err := m.us.GetByUsername(context.Background(), e.Username)
 			if err != nil {
 				continue
 			}
@@ -92,9 +118,12 @@ func (s *Session) GetLeaderboard() []*Participant {
 				Score:    e.Score,
 			}
 			// Cache in memory (inactive participant)
-			s.mu.Lock()
-			s.Participants[e.Username] = p
-			s.mu.Unlock()
+			m.mu.Lock()
+			if _, ok := m.participants[sessionCode]; !ok {
+				m.participants[sessionCode] = make(map[string]*Participant)
+			}
+			m.participants[sessionCode][e.Username] = p
+			m.mu.Unlock()
 		}
 
 		result = append(result, &Participant{
@@ -106,22 +135,32 @@ func (s *Session) GetLeaderboard() []*Participant {
 	return result
 }
 
-func (s *Session) BroadcastLeaderboard() {
-	leaderboard := s.GetLeaderboard()
+func (m *Manager) BroadcastLeaderboard(sessionCode string) {
+	leaderboard := m.GetLeaderboard(sessionCode)
+	meta, ok := m.GetSessionMeta(sessionCode)
+	if !ok {
+		return
+	}
+
 	data, err := json.Marshal(map[string]interface{}{
 		"type":         "leaderboard",
-		"quiz_id":      s.QuizID,
-		"session_code": s.SessionCode,
+		"quiz_id":      meta.QuizID,
+		"session_code": sessionCode,
 		"leaderboard":  leaderboard,
 	})
 	if err != nil {
 		return
 	}
 
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-	for _, p := range s.Participants {
+	ps, ok := m.participants[sessionCode]
+	if !ok {
+		return
+	}
+
+	for _, p := range ps {
 		if p.Conn == nil {
 			continue
 		}
@@ -140,44 +179,4 @@ func (s *Session) BroadcastLeaderboard() {
 			_ = p.Conn.AsyncWrite(payload, nil)
 		}
 	}
-}
-
-type Manager struct {
-	mu       sync.RWMutex
-	sessions map[string]*Session
-	lb       repository.LeaderboardStore
-	us       repository.UserStore
-}
-
-func NewManager(lb repository.LeaderboardStore, us repository.UserStore) *Manager {
-	return &Manager{
-		sessions: make(map[string]*Session),
-		lb:       lb,
-		us:       us,
-	}
-}
-
-func (m *Manager) GetSession(sessionCode string, quizID uint64, dbID uint64) *Session {
-	m.mu.RLock()
-	s, ok := m.sessions[sessionCode]
-	m.mu.RUnlock()
-
-	if !ok {
-		m.mu.Lock()
-		s, ok = m.sessions[sessionCode]
-		if !ok {
-			s = NewSession(quizID, sessionCode, dbID, m.lb, m.us)
-			m.sessions[sessionCode] = s
-		}
-		m.mu.Unlock()
-	}
-	return s
-}
-
-// GetSessionByCode looks up an existing in-memory session without creating one.
-// Returns nil if the session has not been initialized yet.
-func (m *Manager) GetSessionByCode(sessionCode string) *Session {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.sessions[sessionCode]
 }

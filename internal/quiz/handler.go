@@ -73,6 +73,8 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 		return
 	}
 
+	var currentScore float64
+
 	if isPart {
 		// Resume: return ALL questions, mark answered ones so frontend can lock them
 		userAnswers, err := s.quizStore.GetUserAnswers(context.Background(), dbSession.ID, user.ID)
@@ -85,6 +87,7 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 		answeredMap := make(map[uint64]bool)
 		for _, ans := range userAnswers {
 			answeredMap[ans.QuestionID] = true
+			currentScore += float64(ans.Score)
 		}
 
 		for i := range quiz.Questions {
@@ -107,9 +110,8 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 		}
 	}
 
-	// 7. Join in-memory session (keyed by session_code)
-	session := s.Manager.GetSession(dbSession.SessionCode, quiz.ID, dbSession.ID)
-	session.Join(username, user.Name, user.ID, ctx.Conn())
+	// 7. Join in-memory session (manager handles participants and connections)
+	s.Manager.Join(dbSession.SessionCode, quiz.ID, dbSession.ID, username, user.Name, user.ID, currentScore, ctx.Conn())
 	s.Server.Metrics().JoinQuizInc()
 
 	s.Server.Debug("handleJoin: joined", zap.String("username", username), zap.String("code", dbSession.SessionCode))
@@ -121,7 +123,7 @@ func (s *QuizServer) handleJoin(ctx *server.Context) {
 		return
 	}
 	ctx.Write(quizData)
-	session.BroadcastLeaderboard()
+	s.Manager.BroadcastLeaderboard(dbSession.SessionCode)
 	s.Server.Debug("handleJoin finished")
 }
 
@@ -154,16 +156,16 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 		return
 	}
 
-	// 3. Get in-memory session by session_code
-	session := s.Manager.GetSessionByCode(req.SessionCode)
-	if session == nil {
-		s.Server.Error("handleAnswer: session not found", zap.String("code", req.SessionCode))
+	// 3. Get session metadata
+	meta, ok := s.Manager.GetSessionMeta(req.SessionCode)
+	if !ok {
+		s.Server.Error("handleAnswer: session metadata not found", zap.String("code", req.SessionCode))
 		ctx.WriteErrorAndStatus(errors.New("session not found"), proto.StatusError)
 		return
 	}
 
 	// check if user already answered this question
-	userAnswer, err := s.quizStore.GetUserAnswer(context.Background(), session.DBID, user.ID, req.QuestionID)
+	userAnswer, err := s.quizStore.GetUserAnswer(context.Background(), meta.DBID, user.ID, req.QuestionID)
 	if err != nil {
 		s.Server.Error("handleAnswer: user answer not found", zap.Uint64("userID", user.ID), zap.Uint64("questionID", req.QuestionID), zap.Error(err))
 		ctx.WriteErrorAndStatus(errors.New("user answer not found"), proto.StatusError)
@@ -177,7 +179,7 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 	}
 
 	// 4. Verify answer server-side via distributed Redis validation
-	points, isCorrect, err := s.quizStore.ValidateAnswer(context.Background(), session.QuizID, req.QuestionID, req.AnswerID)
+	points, isCorrect, err := s.quizStore.ValidateAnswer(context.Background(), meta.QuizID, req.QuestionID, req.AnswerID)
 	if err != nil {
 		s.Server.Error("handleAnswer: validation error", zap.Error(err))
 		ctx.WriteErrorAndStatus(errors.New("validation failed"), proto.StatusError)
@@ -185,7 +187,7 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 	}
 
 	answer := &model.UserAnswer{
-		SessionID:  session.DBID,
+		SessionID:  meta.DBID,
 		UserID:     user.ID,
 		QuestionID: req.QuestionID,
 		AnswerID:   req.AnswerID,
@@ -201,15 +203,15 @@ func (s *QuizServer) handleAnswer(ctx *server.Context) {
 
 	// 5. Update score in DB
 	if points > 0 {
-		if err := s.quizStore.UpdateParticipantScore(context.Background(), session.DBID, user.ID, points); err != nil {
+		if err := s.quizStore.UpdateParticipantScore(context.Background(), meta.DBID, user.ID, points); err != nil {
 			s.Server.Error("handleAnswer: failed to update score", zap.Error(err))
 			ctx.WriteErrorAndStatus(errors.New("failed to update score"), proto.StatusError)
 			return
 		}
 
 		// 6. Update in-memory leaderboard
-		session.SubmitAnswer(username, points)
-		session.BroadcastLeaderboard()
+		s.Manager.SubmitAnswer(req.SessionCode, username, points)
+		s.Manager.BroadcastLeaderboard(req.SessionCode)
 	}
 
 	s.Server.Metrics().AnswerQuizInc()

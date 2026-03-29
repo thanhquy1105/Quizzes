@@ -9,7 +9,7 @@ import (
 )
 
 type LeaderboardStore interface {
-	Add(ctx context.Context, sessionCode, username string) error
+	Add(ctx context.Context, sessionCode, username string, score float64) error
 	IncrBy(ctx context.Context, sessionCode, username string, delta float64) error
 	GetRanked(ctx context.Context, sessionCode string) ([]model.RankedEntry, error)
 	Delete(ctx context.Context, sessionCode string) error
